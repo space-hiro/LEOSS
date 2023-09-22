@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.0.1"
+    assert __version__ == "0.1.8"
 
 def test_01():
     system = LEOSS()
@@ -79,7 +79,7 @@ def test_05():
 
     system = LEOSS()
     system.mu = 0
-    
+
     system.addSpacecraft("DIWATA")
 
     system[0].setmass(4.5)
