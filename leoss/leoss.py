@@ -3,6 +3,7 @@ class LEOSS():
     def __init__(self):
         self.spacecraftObjects = []
         self.time = 0
+        self.mu = 398600.4418e9
 
     def addSpacecraft(self, name):
         spacecraft = Spacecraft(name)
@@ -16,6 +17,12 @@ class LEOSS():
     
     def numSpacecraft(self):
         return len(self.spacecraftObjects)
+    
+    def advance1timestep(self, deltaTime):
+        for spacecraft in self.spacecraftObjects:
+            spacecraft.netforce = spacecraft.netforce + planetGravity(self.mu, spacecraft.state.mass, spacecraft.state.position)
+            newstate = runggeKutta4(spacecraft, spacecraft.state, self.time, deltaTime)
+            spacecraft.state = newstate
     
     def __getitem__(self, item):
         if isinstance(item, int):
@@ -31,6 +38,7 @@ class Spacecraft():
     def __init__(self, name):
         self.name = name
         self.state = State()
+        self.netforce = Vector(0,0,0)
 
     def getmass(self):
         return self.state.mass
@@ -49,6 +57,13 @@ class Spacecraft():
             self.state.position = other
         else:
             raise TypeError("Operand should be a Vector")
+        
+    def derivative(self, state, time):
+        deltaState = State()
+        deltaState.mass = 0
+        deltaState.position = state.velocity
+        deltaState.velocity = self.netforce/state.mass
+        return deltaState
         
     def getvelocity(self):
         return self.state.velocity
@@ -222,3 +237,19 @@ class State():
         
     def __str__(self):
         return f'State({self.mass}, {self.position}, {self.velocity})'
+    
+    def __repr__(self):
+        return self.__str__()
+    
+
+def planetGravity(parameter, mass, position):
+    rho = position.magnitude()
+    return -(parameter*mass/(rho**3))*position
+
+def runggeKutta4(object, state, time, deltaTime):
+    k1 = object.derivative(state, time)
+    k2 = object.derivative(state + k1*deltaTime/2, time + deltaTime/2)
+    k3 = object.derivative(state + k2*deltaTime/2, time + deltaTime/2)
+    k4 = object.derivative(state + k3*deltaTime, time + deltaTime)
+    k  = (1/6)*(k1 + 2*k2 + 2*k3 + k4)*deltaTime
+    return state+k

@@ -74,3 +74,27 @@ def test_04():
     assert system[0].state - system[0].state == system[0].state * 0
     assert system[0].state / 2 == system[0].state * 0.5
     assert str(system[0].state) == "State(4.5, Vector(100, 60, 80), Vector(5, 3, 4))" 
+
+def test_05():
+
+    system = LEOSS()
+    system.mu = 0
+    
+    system.addSpacecraft("DIWATA")
+
+    system[0].setmass(4.5)
+    system[0].setposition(Vector(100,60,80))
+    system[0].setvelocity(Vector(5,3,4))
+
+    system.advance1timestep(1.0)
+
+    assert system[0].getmass() == 4.5
+    assert system[0].getposition() == Vector(105,63,84)
+    assert system[0].getvelocity() == Vector(5,3,4)
+
+    system.advance1timestep(1.0)
+
+    assert system[0].getmass() == 4.5
+    assert system[0].getposition() == Vector(110,66,88)
+    assert system[0].getvelocity() == Vector(5,3,4)
+
