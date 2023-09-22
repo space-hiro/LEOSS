@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.1.8"
+    assert __version__ == "0.1.9"
 
 def test_01():
     system = LEOSS()
@@ -91,10 +91,12 @@ def test_05():
     assert system[0].getmass() == 4.5
     assert system[0].getposition() == Vector(105,63,84)
     assert system[0].getvelocity() == Vector(5,3,4)
+    assert system.time == 1.0
 
     system.advance1timestep(1.0)
 
     assert system[0].getmass() == 4.5
     assert system[0].getposition() == Vector(110,66,88)
     assert system[0].getvelocity() == Vector(5,3,4)
+    assert system.time == 2.0
 

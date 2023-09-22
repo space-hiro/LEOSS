@@ -23,6 +23,7 @@ class LEOSS():
             spacecraft.netforce = spacecraft.netforce + planetGravity(self.mu, spacecraft.state.mass, spacecraft.state.position)
             newstate = runggeKutta4(spacecraft, spacecraft.state, self.time, deltaTime)
             spacecraft.state = newstate
+        self.time = self.time + deltaTime
     
     def __getitem__(self, item):
         if isinstance(item, int):
