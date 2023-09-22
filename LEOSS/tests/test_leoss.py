@@ -12,3 +12,14 @@ def test_01():
 
     assert system.listSpacecraft() == ['DIWATA-1', 'DIWATA-2']
     assert system.numSpacecraft() == 2
+
+def test_02():
+    a = Vector(1,1,1)
+    b = Vector(2,2,2)
+    c = 3
+
+    assert a + b == Vector(3,3,3)
+    assert a - b == Vector(-1,-1,-1)
+    assert a * b == Vector(2,2,2)
+    assert a * c == Vector(3,3,3)
+    assert a / c == Vector(1/3,1/3,1/3)

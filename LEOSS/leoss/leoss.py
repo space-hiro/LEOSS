@@ -86,6 +86,12 @@ class Vector():
         else:
             raise TypeError("Operand must be int, or float")
         
+    def __eq__(self, other):
+        if isinstance(other, Vector):
+            return (self.x == other.x and self.y == other.y and self.z == other.z)
+        else:
+            raise TypeError("Operand must be Vector")
+        
     def magnitude(self):
         return (self.x**2 + self.y**2 + self.z**2)**0.5
     
