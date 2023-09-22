@@ -16,12 +16,48 @@ class LEOSS():
     
     def numSpacecraft(self):
         return len(self.spacecraftObjects)
+    
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            if item >= 0 and item < self.numSpacecraft():
+                return self.spacecraftObjects[item]
+            else:
+                raise IndexError(f"There are only {self.numSpacecraft()} spacecraft objects")
+        else:
+            raise TypeError("Operand should be a positive int")
 
 class Spacecraft():
 
     def __init__(self, name):
         self.name = name
         self.state = State()
+
+    def getmass(self):
+        return self.state.mass
+
+    def setmass(self, other):
+        if isinstance(other, (int, float)):
+            self.state.mass = other
+        else:
+            raise TypeError("Operand should be int or float")
+
+    def getposition(self):
+        return self.state.position
+    
+    def setposition(self, other):
+        if isinstance(other, Vector):
+            self.state.position = other
+        else:
+            raise TypeError("Operand should be a Vector")
+        
+    def getvelocity(self):
+        return self.state.velocity
+    
+    def setvelocity(self, other):
+        if isinstance(other, Vector):
+            self.state.velocity = other
+        else:
+            raise TypeError("Operand should be a Vector")
 
 class Vector():
 

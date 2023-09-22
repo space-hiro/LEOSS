@@ -30,3 +30,15 @@ def test_02():
     assert d.cross(a) == Vector(-1,2,-1)
     assert b.normalize() == a.normalize()
     assert d.normalize() == Vector(1/(14**0.5),2/(14**0.5),3/(14**0.5))
+    assert d[0] == 1
+    assert d[1] == 2
+    assert d[2] == 3
+
+def test_03():
+    system = LEOSS()
+
+    system.addSpacecraft("DIWATA-1")
+    system.addSpacecraft("DIWATA-2")
+    
+    assert system[0].name == "DIWATA-1"
+    assert system[1].name == "DIWATA-2"
