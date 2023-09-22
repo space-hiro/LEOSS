@@ -92,6 +92,16 @@ class Vector():
         else:
             raise TypeError("Operand must be Vector")
         
+    def cross(self, other):
+        if isinstance(other, Vector):
+            return Vector(
+                self.y * other.z - self.z * other.y,
+                self.z * other.x - self.x * other.z,
+                self.x * other.y - self.y * other.x
+                )
+        else:
+            raise TypeError("Operand must be Vector")
+
     def magnitude(self):
         return (self.x**2 + self.y**2 + self.z**2)**0.5
     

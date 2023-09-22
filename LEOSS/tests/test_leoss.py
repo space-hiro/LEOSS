@@ -17,9 +17,14 @@ def test_02():
     a = Vector(1,1,1)
     b = Vector(2,2,2)
     c = 3
+    d = Vector(1,2,3)
 
     assert a + b == Vector(3,3,3)
     assert a - b == Vector(-1,-1,-1)
     assert a * b == Vector(2,2,2)
     assert a * c == Vector(3,3,3)
     assert a / c == Vector(1/3,1/3,1/3)
+    assert a.cross(b) == Vector(0,0,0)
+    assert a.cross(d) == Vector(1,-2,1)
+    assert b.cross(a) == Vector(0,0,0)
+    assert d.cross(a) == Vector(-1,2,-1)
