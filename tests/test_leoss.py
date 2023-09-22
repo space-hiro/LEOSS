@@ -23,6 +23,7 @@ def test_02():
     assert a - b == Vector(-1,-1,-1)
     assert a * b == Vector(2,2,2)
     assert a * c == Vector(3,3,3)
+    assert c * a == Vector(3,3,3)
     assert a / c == Vector(1/3,1/3,1/3)
     assert a.cross(b) == Vector(0,0,0)
     assert a.cross(d) == Vector(1,-2,1)
@@ -42,3 +43,18 @@ def test_03():
     
     assert system[0].name == "DIWATA-1"
     assert system[1].name == "DIWATA-2"
+
+    assert system[0].getmass() == 0
+    system[0].setmass(10)
+    assert system[0].getmass() == 10
+    system[1].setmass(99)
+    assert system[1].getmass() == 99
+
+    system[0].setposition(Vector(50,30,40))
+    assert system[0].getposition() == Vector(50,30,40)
+    assert system[1].getposition() == Vector(0,0,0)
+    system[1].setvelocity(Vector(50,30,40)*5)
+    assert system[1].getvelocity() == Vector(250,150,200)
+    system[1].setvelocity(2*Vector(50,30,40))
+    assert system[1].getvelocity() == Vector(100, 60, 80)
+

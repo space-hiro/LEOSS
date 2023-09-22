@@ -112,6 +112,9 @@ class Vector():
         else:
             raise TypeError("Operand must be Vector, int, or float")
         
+    def __rmul__(self, other):
+        return self * other
+        
     def __truediv__(self, other):
         if isinstance(other, (int, float)):
             return Vector(
