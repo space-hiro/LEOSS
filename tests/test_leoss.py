@@ -34,6 +34,8 @@ def test_02():
     assert d[0] == 1
     assert d[1] == 2
     assert d[2] == 3
+    assert str(a) == "Vector(1, 1, 1)"
+    assert str(d) == "Vector(1, 2, 3)"
 
 def test_03():
     system = LEOSS()
@@ -58,3 +60,17 @@ def test_03():
     system[1].setvelocity(2*Vector(50,30,40))
     assert system[1].getvelocity() == Vector(100, 60, 80)
 
+def test_04():
+
+    system = LEOSS()
+
+    system.addSpacecraft("DIWATA")
+
+    system[0].setmass(4.5)
+    system[0].setposition(Vector(100,60,80))
+    system[0].setvelocity(Vector(5,3,4))
+
+    assert system[0].state + system[0].state == 2 * system[0].state
+    assert system[0].state - system[0].state == system[0].state * 0
+    assert system[0].state / 2 == system[0].state * 0.5
+    assert str(system[0].state) == "State(4.5, Vector(100, 60, 80), Vector(5, 3, 4))" 

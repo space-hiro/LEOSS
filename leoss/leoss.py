@@ -67,10 +67,10 @@ class Vector():
         self.z = z
 
     def __repr__(self):
-        return f'Vector({self.x}, {self.y}, {self.z}'
+        return f'Vector({self.x}, {self.y}, {self.z})'
     
     def __str__(self):
-        return f'Vector({self.x}, {self.y}, {self.z}'
+        return f'Vector({self.x}, {self.y}, {self.z})'
     
     def __getitem__(self, item):
         if item == 0:
@@ -83,18 +83,24 @@ class Vector():
             raise IndexError("There are only three elements in the vector")
         
     def __add__(self, other):
-        return Vector(
-            self.x + other.x,
-            self.y + other.y,
-            self.z + other.z
-            )
+        if isinstance(other, Vector):
+            return Vector(
+                self.x + other.x,
+                self.y + other.y,
+                self.z + other.z
+                )
+        else:
+            raise TypeError("Operance must a Vector")
     
     def __sub__(self, other):
-        return Vector(
-            self.x - other.x,
-            self.y - other.y,
-            self.z - other.z
-            )
+        if isinstance(other, Vector):
+            return Vector(
+                self.x - other.x,
+                self.y - other.y,
+                self.z - other.z
+                )
+        else:
+            raise TypeError("Operance must a Vector")
     
     def __mul__(self, other):
         if isinstance(other, Vector):
@@ -158,3 +164,61 @@ class State():
         self.mass = mass
         self.position = pos
         self.velocity = vel
+
+    def __add__(self, other):
+        if isinstance(other, State):
+            return State(
+                self.mass + other.mass,
+                self.position + other.position,
+                self.velocity + other.velocity
+                )
+        else:
+            raise TypeError("Operand must be a State")
+    
+    def __sub__(self, other):
+        if isinstance(other, State):
+            return State(
+                self.mass - other.mass,
+                self.position - other.position,
+                self.velocity - other.velocity
+                )
+        else:
+            raise TypeError("Operand must be a State")
+    
+    def __mul__(self, other):
+        if isinstance(other, State):
+            return State(
+            self.mass * other.mass,
+            self.position * other.position,
+            self.velocity * other.velocity
+            )
+        elif isinstance(other, (int, float)):
+            return State(
+            self.mass * other,
+            self.position * other,
+            self.velocity * other
+            )
+        else:
+            raise TypeError("Operand must be a State, int or float")
+        
+    def __rmul__(self, other):
+        return self * other
+        
+    def __truediv__(self, other):
+        if isinstance(other, (int, float)):
+            return State(
+            self.mass / other,
+            self.position / other,
+            self.velocity / other
+            )
+        else:
+            raise TypeError("Operand must be int, or float")
+        
+    def __eq__(self, other):
+        if isinstance(other, State):
+            return (self.mass == other.mass and self.position == other.position and self.velocity == other.velocity)
+        else:
+            raise TypeError("Operand must be a State")
+        
+    def __str__(self):
+        return f'State({self.mass}, {self.position}, {self.velocity})'
