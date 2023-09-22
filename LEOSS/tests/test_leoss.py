@@ -28,3 +28,5 @@ def test_02():
     assert a.cross(d) == Vector(1,-2,1)
     assert b.cross(a) == Vector(0,0,0)
     assert d.cross(a) == Vector(-1,2,-1)
+    assert b.normalize() == a.normalize()
+    assert d.normalize() == Vector(1/(14**0.5),2/(14**0.5),3/(14**0.5))
