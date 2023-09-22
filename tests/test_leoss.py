@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.1.9"
+    assert __version__ == "0.1.10"
 
 def test_01():
     system = LEOSS()
@@ -80,11 +80,16 @@ def test_05():
     system = LEOSS()
     system.mu = 0
 
-    system.addSpacecraft("DIWATA")
+    system.addSpacecraft("DIWATA-1")
+    system.addSpacecraft("DIWATA-2")
 
     system[0].setmass(4.5)
     system[0].setposition(Vector(100,60,80))
     system[0].setvelocity(Vector(5,3,4))
+
+    system[1].setmass(3.5)
+    system[1].setposition(Vector(60,100,50))
+    system[1].setvelocity(Vector(5,4,3))
 
     system.advance1timestep(1.0)
 
@@ -99,4 +104,8 @@ def test_05():
     assert system[0].getposition() == Vector(110,66,88)
     assert system[0].getvelocity() == Vector(5,3,4)
     assert system.time == 2.0
+
+    assert system[1].getmass() == 3.5
+    assert system[1].getposition() == Vector(70,108,56)
+    assert system[1].getvelocity() == Vector(5,4,3)
 
