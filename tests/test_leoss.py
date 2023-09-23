@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.1.11"
+    assert __version__ == "0.1.12"
 
 def test_01():
     system = LEOSS()
@@ -139,3 +139,23 @@ def test_06():
     system[0].state[1] = Vector(1.0,2.0,3.0)
     assert system[0].state.position == Vector(1,2,3)
 
+def test_07():
+
+    system = LEOSS()
+
+    system.addSpacecraft("DIWATA-1")
+    system[0].setmass(4.00)
+    system[0].setposition(Vector(-3398.36655479e3, 2536.91064491e3,  5312.67851581e3 ))
+    system[0].setvelocity(Vector(-5.05043202e3, -5.73213209e3, -0.49795572e3))
+
+    pos0 = system[0].state.position
+    vel0 = system[0].state.velocity
+    h0   = pos0.cross(vel0).magnitude()
+
+    simulate(system, timeEnd=1000, timeStep=1/8)
+
+    pos1 = system[0].state.position
+    vel1 = system[0].state.velocity
+    h1   = pos1.cross(vel1).magnitude()
+
+    assert abs(h1-h0) < 1e-3

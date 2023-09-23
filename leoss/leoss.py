@@ -1,80 +1,3 @@
-class LEOSS():
-
-    def __init__(self):
-        self.spacecraftObjects = []
-        self.time = 0
-        self.mu = 398600.4418e9
-
-    def addSpacecraft(self, name):
-        spacecraft = Spacecraft(name)
-        self.spacecraftObjects.append(spacecraft)
-
-    def listSpacecraft(self):
-        names = []
-        for spacecraft in self.spacecraftObjects:
-            names.append(spacecraft.name)
-        return names
-    
-    def numSpacecraft(self):
-        return len(self.spacecraftObjects)
-    
-    def advance1timestep(self, deltaTime):
-        for spacecraft in self.spacecraftObjects:
-            spacecraft.netforce = spacecraft.netforce + planetGravity(self.mu, spacecraft.state.mass, spacecraft.state.position)
-            newstate = runggeKutta4(spacecraft, spacecraft.state, self.time, deltaTime)
-            spacecraft.state = newstate
-        self.time = self.time + deltaTime
-    
-    def __getitem__(self, item):
-        if isinstance(item, int):
-            if item >= 0 and item < self.numSpacecraft():
-                return self.spacecraftObjects[item]
-            else:
-                raise IndexError(f"There are only {self.numSpacecraft()} spacecraft objects")
-        else:
-            raise TypeError("Operand should be a positive int")
-
-class Spacecraft():
-
-    def __init__(self, name):
-        self.name = name
-        self.state = State()
-        self.netforce = Vector(0,0,0)
-
-    def getmass(self):
-        return self.state.mass
-
-    def setmass(self, other):
-        if isinstance(other, (int, float)):
-            self.state.mass = other
-        else:
-            raise TypeError("Operand should be int or float")
-
-    def getposition(self):
-        return self.state.position
-    
-    def setposition(self, other):
-        if isinstance(other, Vector):
-            self.state.position = other
-        else:
-            raise TypeError("Operand should be a Vector")
-        
-    def derivative(self, state, time):
-        deltaState = State()
-        deltaState.mass = 0
-        deltaState.position = state.velocity
-        deltaState.velocity = self.netforce/state.mass
-        return deltaState
-        
-    def getvelocity(self):
-        return self.state.velocity
-    
-    def setvelocity(self, other):
-        if isinstance(other, Vector):
-            self.state.velocity = other
-        else:
-            raise TypeError("Operand should be a Vector")
-
 class Vector():
 
     def __init__(self, x=0.0, y=0.0, z=0.0):
@@ -261,16 +184,104 @@ class State():
     
     def __repr__(self):
         return self.__str__()
+
+class Spacecraft():
+
+    def __init__(self, name):
+        self.name = name
+        self.state = State()
+        self.netforce = Vector(0,0,0)
+        self.planet = None
+
+    def getmass(self):
+        return self.state.mass
+
+    def setmass(self, other):
+        if isinstance(other, (int, float)):
+            self.state.mass = other
+        else:
+            raise TypeError("Operand should be int or float")
+
+    def getposition(self):
+        return self.state.position
     
+    def setposition(self, other):
+        if isinstance(other, Vector):
+            self.state.position = other
+        else:
+            raise TypeError("Operand should be a Vector")
+        
+    def getvelocity(self):
+        return self.state.velocity
+    
+    def setvelocity(self, other):
+        if isinstance(other, Vector):
+            self.state.velocity = other
+        else:
+            raise TypeError("Operand should be a Vector")
+        
+    def derivative(self, state: State, time):
+        self.clearForces()
+        deltaState = State()
+        deltaState.mass = 0
+        deltaState.position = state.velocity
+        self.netforce = self.netforce + planetGravity(self.planet, state.mass, state.position)
+        deltaState.velocity = self.netforce/state.mass
+        return deltaState
+    
+    def clearForces(self):
+        self.netforce = Vector(0,0,0)
 
-def planetGravity(parameter, mass, position):
+class LEOSS():
+
+    def __init__(self):
+        self.spacecraftObjects = []
+        self.time = 0
+        self.mu = 398600.4418e9
+
+    def addSpacecraft(self, name):
+        spacecraft = Spacecraft(name)
+        self.spacecraftObjects.append(spacecraft)
+
+    def listSpacecraft(self):
+        names = []
+        for spacecraft in self.spacecraftObjects:
+            names.append(spacecraft.name)
+        return names
+    
+    def numSpacecraft(self):
+        return len(self.spacecraftObjects)
+    
+    def advance1timestep(self, deltaTime):
+        for spacecraft in self.spacecraftObjects:
+            spacecraft.planet = self
+            newstate = runggeKutta4(spacecraft.derivative, spacecraft.state, self.time, deltaTime)
+            spacecraft.state = newstate
+        self.time = self.time + deltaTime
+    
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            if item >= 0 and item < self.numSpacecraft():
+                return self.spacecraftObjects[item]
+            else:
+                raise IndexError(f"There are only {self.numSpacecraft()} spacecraft objects")
+        else:
+            raise TypeError("Operand should be a positive int")
+
+
+def planetGravity(planet: LEOSS, mass, position):
     rho = position.magnitude()
-    return -(parameter*mass/(rho**3))*position
+    return -(planet.mu*mass/(rho**3))*position
 
-def runggeKutta4(object, state, time, deltaTime):
-    k1 = object.derivative(state, time)
-    k2 = object.derivative(state + k1*deltaTime/2, time + deltaTime/2)
-    k3 = object.derivative(state + k2*deltaTime/2, time + deltaTime/2)
-    k4 = object.derivative(state + k3*deltaTime, time + deltaTime)
+def runggeKutta4(derivative, state, time, deltaTime):
+    k1 = derivative(state, time)
+    k2 = derivative(state + k1*deltaTime/2, time + deltaTime/2)
+    k3 = derivative(state + k2*deltaTime/2, time + deltaTime/2)
+    k4 = derivative(state + k3*deltaTime, time + deltaTime)
     k  = (1/6)*(k1 + 2*k2 + 2*k3 + k4)*deltaTime
-    return state+k
+    return state + k
+
+def simulate(system: LEOSS, timeEnd, timeStep=1/32):
+
+    while system.time < timeEnd:
+        system.advance1timestep(timeStep)
