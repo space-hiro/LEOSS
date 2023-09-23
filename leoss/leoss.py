@@ -181,39 +181,54 @@ class State():
         self.position = pos
         self.velocity = vel
 
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            if item >= 0 and item < len(self.__dict__):
+                return list(self.__dict__.values())[item]
+            else:
+                raise IndexError(f"There are only {len(self.__dict__)} state variables")
+        else:
+            raise TypeError("Operand should be a positive int")
+        
+    def __setitem__(self, item, value):
+        if isinstance(item, int):
+            if item >= 0 and item < len(self.__dict__):
+                key = list(self.__dict__.keys())[item]
+                self.__dict__[key] = value
+            else:
+                raise IndexError(f"There are only {len(self.__dict__)} state variables")
+        else:
+            raise TypeError("Operand should be a positive int")
+
     def __add__(self, other):
         if isinstance(other, State):
-            return State(
-                self.mass + other.mass,
-                self.position + other.position,
-                self.velocity + other.velocity
-                )
+            newstate = State()
+            for i in range(0,len(self.__dict__),1):
+                newstate[i] = self[i] + other[i]
+            return newstate
         else:
             raise TypeError("Operand must be a State")
     
     def __sub__(self, other):
         if isinstance(other, State):
-            return State(
-                self.mass - other.mass,
-                self.position - other.position,
-                self.velocity - other.velocity
-                )
+            newstate = State()
+            for i in range(0,len(self.__dict__),1):
+                newstate[i] = self[i] - other[i]
+            return newstate
         else:
             raise TypeError("Operand must be a State")
     
     def __mul__(self, other):
         if isinstance(other, State):
-            return State(
-            self.mass * other.mass,
-            self.position * other.position,
-            self.velocity * other.velocity
-            )
+            newstate = State()
+            for i in range(0,len(self.__dict__),1):
+                newstate[i] = self[i] * other[i]
+            return newstate
         elif isinstance(other, (int, float)):
-            return State(
-            self.mass * other,
-            self.position * other,
-            self.velocity * other
-            )
+            newstate = State()
+            for i in range(0,len(self.__dict__),1):
+                newstate[i] = self[i] * other
+            return newstate
         else:
             raise TypeError("Operand must be a State, int or float")
         
@@ -222,22 +237,27 @@ class State():
         
     def __truediv__(self, other):
         if isinstance(other, (int, float)):
-            return State(
-            self.mass / other,
-            self.position / other,
-            self.velocity / other
-            )
+            newstate = State()
+            for i in range(0,len(self.__dict__),1):
+                newstate[i] = self[i] / other
+            return newstate
         else:
             raise TypeError("Operand must be int, or float")
         
     def __eq__(self, other):
         if isinstance(other, State):
-            return (self.mass == other.mass and self.position == other.position and self.velocity == other.velocity)
+            for i in range(0,len(self.__dict__),1):
+                if self[i] != other[i]:
+                    return False
+            return True
         else:
             raise TypeError("Operand must be a State")
         
     def __str__(self):
-        return f'State({self.mass}, {self.position}, {self.velocity})'
+        out = str(self[0])
+        for i in range(1,len(self.__dict__),1):
+            out = out + ", " + str(self[i])
+        return f'State({out})'
     
     def __repr__(self):
         return self.__str__()

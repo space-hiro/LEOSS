@@ -120,3 +120,22 @@ def test_05():
     assert system[1].getposition() == Vector(72.5,110,57.5)
     assert system[1].getvelocity() == Vector(5,4,3)
 
+def test_06():
+
+    system = LEOSS()
+    
+    system.addSpacecraft("DIWATA")
+
+    assert system[0].state[0] == system[0].state.mass
+    assert system[0].state[1] == system[0].state.position
+    assert system[0].state[2] == system[0].state.velocity
+
+    system[0].state[0] = 10
+    assert system[0].state.mass == 10
+
+    system[0].setmass(20)
+    assert system[0].state[0] == 20
+
+    system[0].state[1] = Vector(1.0,2.0,3.0)
+    assert system[0].state.position == Vector(1,2,3)
+
