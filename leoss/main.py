@@ -241,15 +241,13 @@ class LEOSS():
         self.spacecraftObjects = []
         self.time = 0
         self.mu = 398600.4418e9
-        self.epoch(datetime.datetime.today())
+        self.epochDT(datetime.datetime.today())
 
-    def epoch(self, *args):
-        if len(args) == 1:
-            dt = args[0]
+    def epochDT(self, dt: datetime.datetime):
             self.epoch(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond)
-        if len(args) == 7:
-            year = args[0]; month = args[1]; day = args[2]
-            hour = args[3]; minute = args[4]; second = args[5]; microsecond = args[6] 
+
+    def epoch(self, year=0, month=0, day=0, hour=0, minute=0, second=0, microsecond=0):
+            
             self.datetime0 = datetime.datetime(year, month, day, hour, minute, second, microsecond)
             self.jdate0 = 367*year - int((7*(year + int((month+9)/12)))/4) + int(275*month/9) + day + 1721013.5
             
