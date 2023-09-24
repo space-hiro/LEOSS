@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.1.12"
+    assert __version__ == "0.1.13"
 
 def test_01():
     system = LEOSS()
@@ -151,11 +151,14 @@ def test_07():
     pos0 = system[0].state.position
     vel0 = system[0].state.velocity
     h0   = pos0.cross(vel0).magnitude()
+    xi0  = (vel0.magnitude()**2)/2 - ( system.mu/pos0.magnitude() )
 
     simulate(system, timeEnd=1000, timeStep=1/8)
 
     pos1 = system[0].state.position
     vel1 = system[0].state.velocity
     h1   = pos1.cross(vel1).magnitude()
-
+    xi1  = (vel1.magnitude()**2)/2 - ( system.mu/pos1.magnitude() )
+    
     assert abs(h1-h0) < 1e-3
+    assert abs(xi1-xi0) < 1e-3
