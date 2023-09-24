@@ -162,3 +162,7 @@ def test_07():
     
     assert abs(h1-h0) < 1e-3
     assert abs(xi1-xi0) < 1e-3
+
+def test_08():
+
+    assert type(visual_check()) == LEOSS

@@ -8,6 +8,7 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.10"
+matplotlib = "^3.8.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.2"
