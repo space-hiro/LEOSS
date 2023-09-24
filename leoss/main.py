@@ -1,3 +1,6 @@
+import datetime
+
+
 class Vector():
 
     def __init__(self, x=0.0, y=0.0, z=0.0):
@@ -238,6 +241,26 @@ class LEOSS():
         self.spacecraftObjects = []
         self.time = 0
         self.mu = 398600.4418e9
+        self.epoch(datetime.datetime.today())
+
+    def epoch(self, *args):
+        if len(args) == 1:
+            dt = args[0]
+            self.epoch(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond)
+        if len(args) == 7:
+            year = args[0]; month = args[1]; day = args[2]
+            hour = args[3]; minute = args[4]; second = args[5]; microsecond = args[6] 
+            self.datetime0 = datetime.datetime(year, month, day, hour, minute, second, microsecond)
+            self.jdate0 = 367*year - int((7*(year + int((month+9)/12)))/4) + int(275*month/9) + day + 1721013.5
+            
+            hours  = hour + minute/60 + second/3600 + microsecond/3600000000
+            j2000  = 2451545
+            T0     = (self.jdate0 - j2000)/36525
+            
+            gmst0_ =  100.4606184 + 36000.77004*T0 + 0.000387933*(T0**2) - (2.583e-8)*(T0**3)
+
+            self.gmst0 = gmst0_%360
+            self.gmst  = self.gmst0 + 360.98564724*hours/24
 
     def addSpacecraft(self, name):
         spacecraft = Spacecraft(name)

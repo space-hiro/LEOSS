@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "leoss"
-version = "0.1.13"
+version = "0.1.14"
 description = "Low Earth Orbit Spacecraft Simulator"
 authors = ["space-hiro <144877753+space-hiro@users.noreply.github.com>"]
 readme = "README.md"
@@ -9,6 +9,7 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.10"
 matplotlib = "^3.8.0"
+datetime = "^5.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.2"

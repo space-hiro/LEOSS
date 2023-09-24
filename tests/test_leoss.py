@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.1.13"
+    assert __version__ == "0.1.14"
 
 def test_01():
     system = LEOSS()
@@ -166,3 +166,13 @@ def test_07():
 def test_08():
 
     assert type(visual_check()) == LEOSS
+
+def test_09():
+
+    system = LEOSS()
+
+    assert system.datetime0 == datetime.datetime.today()
+    
+    system.epoch(2023,1,1,0,0,0,0)
+
+    assert system.datetime0 == datetime.datetime(2023,1,1,0,0,0,0)
