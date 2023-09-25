@@ -260,6 +260,9 @@ class LEOSS():
             self.gmst0 = gmst0_%360
             self.gmst  = self.gmst0 + 360.98564724*hours/24
 
+    def datenow(self):
+        return self.datetime0 + datetime.timedelta(seconds=self.time)
+
     def addSpacecraft(self, name):
         spacecraft = Spacecraft(name)
         self.spacecraftObjects.append(spacecraft)
