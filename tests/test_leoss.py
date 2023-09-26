@@ -218,6 +218,13 @@ def test_12():
 
     spacecraft = system.getSpacecrafts()
 
+    # ISS data from https://live.ariss.org/tle/
+    # 26/09/2023 03:11:18 UTC
+    # -33.2464deg, -12.9220deg
+    # 431.8 km
+
+    # r v state vectors calculated from sgp4 (analytical) python library
+
     spacecraft["DIWATA"].setmass(50)
     spacecraft["DIWATA"].setposition(1e3*Vector(4395.079058029986, 3631.5889348004957, -3712.575674067216))
     spacecraft["DIWATA"].setvelocity(1e3*Vector(-5.76886641743168, 2.5823185921356733, -4.310210403510053))
@@ -226,6 +233,7 @@ def test_12():
 
     location = system.locate(spacecraft["DIWATA"])
 
+    assert str(system.datenow()) == '2023-09-26 03:11:18'
     assert abs(location[0]- -33.2464) <= 1
     assert abs(location[1]- -12.9220) <= 1
     assert abs(location[2]- 431.8) <= 1 
@@ -234,6 +242,11 @@ def test_12():
 
     simulate(system, time)
     location = system.locate(spacecraft["DIWATA"])
+
+    # ISS data from https://live.ariss.org/tle/
+    # 26/09/2023 03:53:17 UTC
+    # 20.7225deg, 142.6722deg
+    # 414.6km
 
     assert str(system.datenow()) == '2023-09-26 03:53:17'
     assert abs(location[0]- 20.7225) <= 1
