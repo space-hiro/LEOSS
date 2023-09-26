@@ -194,7 +194,7 @@ class Spacecraft():
         self.name = name
         self.state = State()
         self.netforce = Vector(0,0,0)
-        self.planet = None
+        self.system = None
 
     def getmass(self):
         return self.state.mass
@@ -228,7 +228,7 @@ class Spacecraft():
         deltaState = State()
         deltaState.mass = 0
         deltaState.position = state.velocity
-        self.netforce = self.netforce + planetGravity(self.planet, state.mass, state.position)
+        self.netforce = self.netforce + systemGravity(self.system, state.mass, state.position)
         deltaState.velocity = self.netforce/state.mass
         return deltaState
     
@@ -278,7 +278,7 @@ class LEOSS():
     
     def advance1timestep(self, deltaTime):
         for spacecraft in self.spacecraftObjects:
-            spacecraft.planet = self
+            spacecraft.system = self
             newstate = runggeKutta4(spacecraft.derivative, spacecraft.state, self.time, deltaTime)
             spacecraft.state = newstate
         self.time = self.time + deltaTime
@@ -293,9 +293,9 @@ class LEOSS():
             raise TypeError("Operand should be a positive int")
 
 
-def planetGravity(planet: LEOSS, mass, position):
+def systemGravity(system: LEOSS, mass, position):
     rho = position.magnitude()
-    return -(planet.mu*mass/(rho**3))*position
+    return -(system.mu*mass/(rho**3))*position
 
 def runggeKutta4(derivative, state, time, deltaTime):
     k1 = derivative(state, time)
@@ -309,3 +309,6 @@ def simulate(system: LEOSS, timeEnd, timeStep=1/32):
 
     while system.time < timeEnd:
         system.advance1timestep(timeStep)
+
+def systemLocation(system: LEOSS, position):
+    pass
