@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.1.18"
+    assert __version__ == "0.1.19"
 
 def test_01():
     system = LEOSS()
@@ -223,8 +223,7 @@ def test_12():
     # -33.2464deg, -12.9220deg
     # 431.8 km
 
-    # r v state vectors calculated from sgp4 (analytical) python library
-
+    # r v state vectors given here are calculated from sgp4 (analytical) python library
     spacecraft["DIWATA"].setmass(50)
     spacecraft["DIWATA"].setposition(1e3*Vector(4395.079058029986, 3631.5889348004957, -3712.575674067216))
     spacecraft["DIWATA"].setvelocity(1e3*Vector(-5.76886641743168, 2.5823185921356733, -4.310210403510053))
@@ -252,3 +251,33 @@ def test_12():
     assert abs(location[0]- 20.7225) <= 1
     assert abs(location[1]- 142.6722) <= 1
     assert abs(location[2]- 414.6) <= 1 
+
+def test_13():
+
+    system = LEOSS()
+    system.epoch(2023,9,26,3,11,18,0)
+
+    system.addSpacecraft("DIWATA")
+
+    spacecraft = system.getSpacecrafts()
+    recorder   = system.getRecorders()
+
+    spacecraft["DIWATA"].setmass(50)
+    spacecraft["DIWATA"].setposition(1e3*Vector(4395.079058029986, 3631.5889348004957, -3712.575674067216))
+    spacecraft["DIWATA"].setvelocity(1e3*Vector(-5.76886641743168, 2.5823185921356733, -4.310210403510053))
+
+    time = 41*60 + 59
+
+    simulate(system, time)
+
+    datetime0  = recorder["DIWATA"]["Datetime"][1]
+    statedata0 = recorder["DIWATA"]["State"][1]
+    datetimef  = recorder["DIWATA"]["Datetime"][-1]
+    statedataf = recorder["DIWATA"]["State"][-1]
+    
+    assert str(datetime0) == '2023-09-26 03:11:18'
+    assert statedata0.position == 1e3*Vector(4395.079058029986, 3631.5889348004957, -3712.575674067216)
+    assert statedata0.velocity == 1e3*Vector(-5.76886641743168, 2.5823185921356733, -4.310210403510053)
+    assert str(datetimef) == '2023-09-26 03:53:17'
+    assert statedataf.position == Vector(-5725303.624707216, -2767243.571487566, 2382689.3430830454)
+    assert statedataf.velocity == Vector(4028.7141877464305, -3694.338983991167, 5372.97168210374)

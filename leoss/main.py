@@ -238,11 +238,34 @@ class Spacecraft():
     def clearForces(self):
         self.netforce = Vector(0,0,0)
 
+class Recorder():
+
+    def __init__(self, datetime: datetime.datetime,  spacecraft: Spacecraft):
+        self.attachedTo   = spacecraft
+        self.attachedWhen = datetime
+        self.dataDict = { "Datetime" : [] , "State" : []}
+        self.update(datetime)
+    
+    def update(self, datetime: datetime.datetime):
+        Datetime = datetime
+        State = self.attachedTo.state
+        self.dataDict["Datetime"].append(Datetime)
+        self.dataDict["State"].append(State)
+
+    def __getitem__(self, item):
+        if isinstance(item, str) and item == "Datetime":
+            return self.dataDict[item]
+        elif isinstance(item, str) and item == "State":
+            return self.dataDict[item]
+        else:
+            raise TypeError("Operand should be recorder item")
+
 class LEOSS():
 
     def __init__(self):
         self.spacecraftObjects = []
-        self.time = 0
+        self.recorderObjects = {}
+        self.time = 0.0
         self.mu = 398600.4418e9
         self.radi = 6378.137e3
         self.epochDT(datetime.datetime.today())
@@ -270,6 +293,8 @@ class LEOSS():
     def addSpacecraft(self, name):
         spacecraft = Spacecraft(name)
         self.spacecraftObjects.append(spacecraft)
+        recorder = Recorder(self.datenow(), spacecraft)
+        self.recorderObjects[name] = recorder
 
     def listSpacecraft(self):
         names = []
@@ -283,6 +308,9 @@ class LEOSS():
             spacecraftDict[spacecraft.name] = spacecraft
         return spacecraftDict
     
+    def getRecorders(self):
+        return self.recorderObjects
+    
     def numSpacecraft(self):
         return len(self.spacecraftObjects)
     
@@ -291,7 +319,12 @@ class LEOSS():
             spacecraft.system = self
             newstate = runggeKutta4(spacecraft.derivative, spacecraft.state, self.time, deltaTime)
             spacecraft.state = newstate
+            self.recorderObjects[spacecraft.name].update(self.datenow()+datetime.timedelta(seconds=deltaTime))
         self.time = self.time + deltaTime
+
+    def initRecorders(self):
+        for spacecraft in self.spacecraftObjects:
+            self.recorderObjects[spacecraft.name].update(self.datenow())
     
     def __getitem__(self, item):
         if isinstance(item, int):
@@ -360,5 +393,6 @@ def runggeKutta4(derivative, state, time, deltaTime):
 
 def simulate(system: LEOSS, timeEnd, timeStep=1/32):
 
+    system.initRecorders()
     while system.time < timeEnd:
         system.advance1timestep(timeStep)
