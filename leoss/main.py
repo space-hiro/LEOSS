@@ -197,6 +197,7 @@ class Spacecraft():
         self.name = name
         self.state = State()
         self.netforce = Vector(0,0,0)
+        self.location = Vector(0,0,0)
         self.system = None
 
     def getmass(self):
@@ -238,24 +239,39 @@ class Spacecraft():
     def clearForces(self):
         self.netforce = Vector(0,0,0)
 
+    def __getitem__(self, item):
+        if isinstance(item, str):
+            if item == "State": 
+                return self.state
+            elif item == "Netforce": 
+                return self.netforce
+            elif item == "Location": 
+                return self.location
+            else:
+                raise TypeError("Operand should be a recorder item")
+        else:
+            raise TypeError("Operand should be a recorder item in str")
+
 class Recorder():
 
-    def __init__(self, datetime: datetime.datetime,  spacecraft: Spacecraft):
+    def __init__(self, datetime: datetime.datetime,  spacecraft: Spacecraft, datalist: list):
         self.attachedTo   = spacecraft
         self.attachedWhen = datetime
-        self.dataDict = { "Datetime" : [] , "State" : []}
+        self.dataDict = { "Datetime" : [] }
+
+        for item in datalist:
+            self.dataDict[item] = []
         self.update(datetime)
     
     def update(self, datetime: datetime.datetime):
         Datetime = datetime
-        State = self.attachedTo.state
         self.dataDict["Datetime"].append(Datetime)
-        self.dataDict["State"].append(State)
+
+        for item in list(self.dataDict.keys())[1:]:
+            self.dataDict[item].append(self.attachedTo[item])
 
     def __getitem__(self, item):
-        if isinstance(item, str) and item == "Datetime":
-            return self.dataDict[item]
-        elif isinstance(item, str) and item == "State":
+        if isinstance(item, str) and item in self.dataDict.keys():
             return self.dataDict[item]
         else:
             raise TypeError("Operand should be recorder item")
@@ -290,10 +306,11 @@ class LEOSS():
     def datenow(self):
         return self.datetime0 + datetime.timedelta(seconds=self.time)
 
-    def addSpacecraft(self, name):
+    def addSpacecraft(self, name, recordList: list = ["State"]):
         spacecraft = Spacecraft(name)
+        spacecraft.system = self
         self.spacecraftObjects.append(spacecraft)
-        recorder = Recorder(self.datenow(), spacecraft)
+        recorder = Recorder(self.datenow(), spacecraft, recordList)
         self.recorderObjects[name] = recorder
 
     def listSpacecraft(self):
@@ -316,7 +333,7 @@ class LEOSS():
     
     def advance1timestep(self, deltaTime):
         for spacecraft in self.spacecraftObjects:
-            spacecraft.system = self
+            spacecraft.location = self.locate(spacecraft)
             newstate = runggeKutta4(spacecraft.derivative, spacecraft.state, self.time, deltaTime)
             spacecraft.state = newstate
             self.recorderObjects[spacecraft.name].update(self.datenow()+datetime.timedelta(seconds=deltaTime))
@@ -375,7 +392,7 @@ class LEOSS():
         if longitude > 180:
             longitude = -360 + longitude
         
-        location = [latitude, longitude, altitude]
+        location = Vector(latitude, longitude, altitude)
         return location
 
 
@@ -392,7 +409,12 @@ def runggeKutta4(derivative, state, time, deltaTime):
     return state + k
 
 def simulate(system: LEOSS, timeEnd, timeStep=1/32):
+    
+    for spacecraft in system.spacecraftObjects:
+        spacecraft.location = system.locate(spacecraft)
+        spacecraft.derivative(spacecraft.state, system.time)
 
     system.initRecorders()
+
     while system.time < timeEnd:
         system.advance1timestep(timeStep)

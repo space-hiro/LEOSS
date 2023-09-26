@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.1.19"
+    assert __version__ == "0.1.20"
 
 def test_01():
     system = LEOSS()
@@ -281,3 +281,41 @@ def test_13():
     assert str(datetimef) == '2023-09-26 03:53:17'
     assert statedataf.position == Vector(-5725303.624707216, -2767243.571487566, 2382689.3430830454)
     assert statedataf.velocity == Vector(4028.7141877464305, -3694.338983991167, 5372.97168210374)
+
+def test_14():
+
+    system = LEOSS()
+    system.epoch(2023,9,26,3,11,18,0)
+
+    system.addSpacecraft("DIWATA", ["State", "Location", "Netforce"])
+
+    spacecraft = system.getSpacecrafts()
+    recorder   = system.getRecorders()
+
+    spacecraft["DIWATA"].setmass(50)
+    spacecraft["DIWATA"].setposition(1e3*Vector(4395.079058029986, 3631.5889348004957, -3712.575674067216))
+    spacecraft["DIWATA"].setvelocity(1e3*Vector(-5.76886641743168, 2.5823185921356733, -4.310210403510053))
+
+    time = 41*60 + 59
+
+    simulate(system, time)
+
+    datetime0  = recorder["DIWATA"]["Datetime"][1]
+    statedata0 = recorder["DIWATA"]["State"][1]
+    location0  = recorder["DIWATA"]["Location"][1]
+    netforce0  = recorder["DIWATA"]["Netforce"][1]
+    datetimef  = recorder["DIWATA"]["Datetime"][-1]
+    statedataf = recorder["DIWATA"]["State"][-1]
+    locationf = recorder["DIWATA"]["Location"][-1]
+    netforcef  = recorder["DIWATA"]["Netforce"][-1]
+    
+    assert str(datetime0) == '2023-09-26 03:11:18'
+    assert statedata0.position == 1e3*Vector(4395.079058029986, 3631.5889348004957, -3712.575674067216)
+    assert statedata0.velocity == 1e3*Vector(-5.76886641743168, 2.5823185921356733, -4.310210403510053)
+    assert location0 == Vector(-33.23626522433354, -12.934352351857115, 431.8074766006423)
+    assert netforce0 == Vector(-278.14198636900056, -229.8246167280209, 234.9498516172633)
+    assert str(datetimef) == '2023-09-26 03:53:17'
+    assert statedataf.position == Vector(-5725303.624707216, -2767243.571487566, 2382689.3430830454)
+    assert statedataf.velocity == Vector(4028.7141877464305, -3694.338983991167, 5372.97168210374)
+    assert locationf == Vector(20.659766928143334, 142.77092432238405, 415.23150512780995)
+    assert netforcef == Vector(364.382790906085, 176.1192072581338, -151.64453269308962)
