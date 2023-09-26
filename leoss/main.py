@@ -1,5 +1,8 @@
 import datetime
+import math
 
+R2D = 180/math.pi
+D2R = math.pi/180
 
 class Vector():
 
@@ -241,6 +244,7 @@ class LEOSS():
         self.spacecraftObjects = []
         self.time = 0
         self.mu = 398600.4418e9
+        self.radi = 6378.137e3
         self.epochDT(datetime.datetime.today())
 
     def epochDT(self, dt: datetime.datetime):
@@ -273,6 +277,12 @@ class LEOSS():
             names.append(spacecraft.name)
         return names
     
+    def getSpacecrafts(self):
+        spacecraftDict = {}
+        for spacecraft in self.spacecraftObjects:
+            spacecraftDict[spacecraft.name] = spacecraft
+        return spacecraftDict
+    
     def numSpacecraft(self):
         return len(self.spacecraftObjects)
     
@@ -291,6 +301,49 @@ class LEOSS():
                 raise IndexError(f"There are only {self.numSpacecraft()} spacecraft objects")
         else:
             raise TypeError("Operand should be a positive int")
+        
+    def locate(self, spacecraft: Spacecraft):
+        
+        position = spacecraft.getposition()
+
+        mag = position.magnitude()
+
+        theta = math.acos(position.z/mag)
+        psi   = math.atan2(position.y,position.x)
+
+        latitude  = 90 - (theta*R2D)
+        longitude = psi*R2D
+        altitude  = (mag-self.radi)/1000
+
+        xy = math.sqrt(position.x**2+position.y**2)
+
+        gd_theta = latitude*D2R
+        C = 0
+        gd = 0
+        e2 = 0.006694385000
+
+        while True:
+            C = self.radi/math.sqrt(1-e2*math.sin(gd_theta)*math.sin(gd_theta))
+            gd = math.atan2(position.z+C*e2*math.sin(gd_theta),xy)
+            if abs(gd-gd_theta) < 1e-6:
+                gd_theta = gd
+                break
+            gd_theta = gd
+        
+        h_ellp = ( xy/math.cos(gd_theta) ) - C  
+        
+        altitude = h_ellp/1e3
+        latitude = gd_theta*R2D
+
+        gmst_ = self.gmst + self.time*(360.98564724)/(24*3600) 
+        longitude = longitude - gmst_
+        if longitude < 0:
+            longitude = (((longitude/360) - int(longitude/360)) * 360) + 360    
+        if longitude > 180:
+            longitude = -360 + longitude
+        
+        location = [latitude, longitude, altitude]
+        return location
 
 
 def systemGravity(system: LEOSS, mass, position):
@@ -309,6 +362,3 @@ def simulate(system: LEOSS, timeEnd, timeStep=1/32):
 
     while system.time < timeEnd:
         system.advance1timestep(timeStep)
-
-def systemLocation(system: LEOSS, position):
-    pass

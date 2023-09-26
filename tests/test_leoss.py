@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.1.17"
+    assert __version__ == "0.1.18"
 
 def test_01():
     system = LEOSS()
@@ -209,3 +209,33 @@ def test_11():
     assert system.jdate0 == 2448854.5
     assert system.gmst0  == 328.5763825139975
     assert system.gmst%360 == 152.57878881549743
+
+def test_12():
+
+    system = LEOSS()
+
+    system.addSpacecraft("DIWATA")
+
+    spacecraft = system.getSpacecrafts()
+
+    spacecraft["DIWATA"].setmass(50)
+    spacecraft["DIWATA"].setposition(1e3*Vector(4395.079058029986, 3631.5889348004957, -3712.575674067216))
+    spacecraft["DIWATA"].setvelocity(1e3*Vector(-5.76886641743168, 2.5823185921356733, -4.310210403510053))
+
+    system.epoch(2023,9,26,3,11,18)
+
+    location = system.locate(spacecraft["DIWATA"])
+
+    assert abs(location[0]- -33.2464) <= 1
+    assert abs(location[1]- -12.9220) <= 1
+    assert abs(location[2]- 431.8) <= 1 
+
+    time = 41*60 + 59
+
+    simulate(system, time)
+    location = system.locate(spacecraft["DIWATA"])
+
+    assert str(system.datenow()) == '2023-09-26 03:53:17'
+    assert abs(location[0]- 20.7225) <= 1
+    assert abs(location[1]- 142.6722) <= 1
+    assert abs(location[2]- 414.6) <= 1 
