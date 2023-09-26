@@ -1,5 +1,7 @@
 import datetime
 import math
+from tqdm import tqdm
+import time as clock
 
 R2D = 180/math.pi
 D2R = math.pi/180
@@ -418,3 +420,38 @@ def simulate(system: LEOSS, timeEnd, timeStep=1/32):
 
     while system.time < timeEnd:
         system.advance1timestep(timeStep)
+
+def simulateProgress0(system: LEOSS, timeEnd, timeStep=1/32):
+    
+    for spacecraft in system.spacecraftObjects:
+        spacecraft.location = system.locate(spacecraft)
+        spacecraft.derivative(spacecraft.state, system.time)
+
+    system.initRecorders()
+    
+    with tqdm(total = timeEnd) as pbar:
+        while system.time < timeEnd:
+            system.advance1timestep(timeStep)
+            pbar.update(timeStep)
+
+def simulateProgress(system: LEOSS, timeEnd, timeStep=1/32):
+    
+    for spacecraft in system.spacecraftObjects:
+        spacecraft.location = system.locate(spacecraft)
+        spacecraft.derivative(spacecraft.state, system.time)
+
+    system.initRecorders()
+
+    print("\nRun Simulation (from "+str(system.time)+" to "+str(timeEnd)+", step="+str(timeStep)+")")
+    t0 = clock.time()
+
+    pbar = tqdm(total=timeEnd-system.time, position=0, desc='Simulating', bar_format='{l_bar}{bar:25}{r_bar}{bar:-25b}')
+    
+    while(system.time < timeEnd):
+        prev_time = system.time
+        system.advance1timestep(timeStep)        
+        pbar.update(system.time - prev_time)
+    pbar.close()
+
+    t1 = clock.time()
+    print("\nElapsed Time:\t"+str(t1-t0)+" sec.")

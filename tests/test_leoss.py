@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.1.20"
+    assert __version__ == "0.1.21"
 
 def test_01():
     system = LEOSS()
@@ -317,5 +317,5 @@ def test_14():
     assert str(datetimef) == '2023-09-26 03:53:17'
     assert statedataf.position == Vector(-5725303.624707216, -2767243.571487566, 2382689.3430830454)
     assert statedataf.velocity == Vector(4028.7141877464305, -3694.338983991167, 5372.97168210374)
-    assert locationf == Vector(20.659766928143334, 142.77092432238405, 415.23150512780995)
-    assert netforcef == Vector(364.382790906085, 176.1192072581338, -151.64453269308962)
+    assert locationf == Vector(20.658246279489802, 142.76949414474478, 415.2313183538606)
+    assert netforcef == Vector(364.382790906085, 176.1192072581338, -151.64453269308962) 
