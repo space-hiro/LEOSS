@@ -61,20 +61,26 @@ def groundTrack(recorder: Recorder, dateTime = 0):
     ax.add_feature(Nightshade(dateTime, alpha=0.3))
 
     index = Times.index(currentTime)
-    ax.plot(Longitudes[index], Latitudes[index] , marker='o', color='white', markersize=12,
+    spot, = ax.plot(Longitudes[index], Latitudes[index] , marker='o', color='white', markersize=12,
             alpha=0.5, transform=ccrs.PlateCarree(), zorder=3.0)
     
     lat = str('%.2F'% Latitudes[index]+"°")
     lon = str('%.2F'% Longitudes[index]+"°")
-    alt = str('%.0F'% Altitudes[index]+"km")
+    alt = str('%.2F'% Altitudes[index]+"km")
     txt = "lat: "+lat+"\nlon: "+lon+"\nalt: "+alt
     geodetic_transform = ccrs.PlateCarree()._as_mpl_transform(ax)
     text_transform = offset_copy(geodetic_transform, units='dots', x=+15, y=+0)
 
-    ax.text(Longitudes[index], Latitudes[index], txt,
+    label = ax.text(Longitudes[index], Latitudes[index], txt,
         verticalalignment='center', horizontalalignment='left',
         transform=text_transform, fontsize=8,
-        bbox=dict(facecolor='white', alpha=0.5, boxstyle='round'))
+        bbox=dict(facecolor='white', alpha=0.5, boxstyle='round'), fontdict={'family':'monospace'})
+    
+    # import matplotlib
+    # print(matplotlib.artist.getp(spot))
+    # spot.set_data([0,0])
+    # label.set(position=[0,0])
+    # label.set(text="AA")
 
     plt.show()
 
@@ -110,6 +116,21 @@ class animatedGroundTrack(object):
             transform=ccrs.PlateCarree(),
             )
         
+        self.spot, = self.ax.plot(self.lon[0], self.lat[0] , marker='o', color='white', markersize=12,
+                alpha=0.5, transform=ccrs.PlateCarree(), zorder=3.0)
+        
+        geodetic_transform = ccrs.PlateCarree()._as_mpl_transform(self.ax)
+        text_transform = offset_copy(geodetic_transform, units='dots', x=+15, y=+0)
+
+        lat = str('%.2F'% self.lat[0]+"°")
+        lon = str('%.2F'% self.lon[0]+"°")
+        alt = str('%.2F'% self.alt[0]+"km")
+        txt = "lat: "+lat+"\nlon: "+lon+"\nlat: "+alt
+        self.text = self.ax.text(self.lon[0], self.lat[0], txt,
+            verticalalignment='center', horizontalalignment='left',
+            transform=text_transform, fontsize=8,
+            bbox=dict(facecolor='white', alpha=0.5, boxstyle='round'), fontdict={'family':'monospace'})
+        
         length = int(self.time[-1]/10)
 
         plt.title(f'{spacecraft.name}', loc='Right')
@@ -132,20 +153,15 @@ class animatedGroundTrack(object):
         self.ax.set_title(f'Datetime: {dt_current}', horizontalalignment='left', loc='Left')
         self.plot.set_alpha(self.time<=t_current)
 
-        # index = len([ item for item in self.time if item <= t_current ]) - 1
-        # self.ax.plot(self.lon[index], self.lat[index] , marker='o', color='white', markersize=12,
-        #         alpha=0.5, transform=ccrs.PlateCarree(), zorder=3.0)
+        index = len([ item for item in self.time if item <= t_current ]) - 1
+   
+        self.spot.set_data([self.lon[index], self.lat[index]])
         
-        # lat = str('%.2F'% self.lat[index]+"°")
-        # lon = str('%.2F'% self.lon[index]+"°")
-        # txt = "lat: "+lat+"\nlon: "+lon
-        # geodetic_transform = ccrs.PlateCarree()._as_mpl_transform(self.ax)
-        # text_transform = offset_copy(geodetic_transform, units='dots', x=+80, y=+0)
-
-        # self.ax.text(self.lon[index], self.lat[index], txt,
-        #     verticalalignment='center', horizontalalignment='right',
-        #     transform=text_transform, fontsize=8,
-        #     bbox=dict(facecolor='white', alpha=0.5, boxstyle='round'))
+        lat = str('%.2F'% self.lat[index]+"°")
+        lon = str('%.2F'% self.lon[index]+"°")
+        alt = str('%.2F'% self.alt[index]+"km")
+        txt = "lat: "+lat+"\nlon: "+lon+"\nalt: "+alt
+        self.text.set(position=[self.lon[index], self.lat[index]], text=txt)
 
         return self.plot
 
