@@ -86,7 +86,7 @@ def groundTrack(recorder: Recorder, dateTime = 0):
 
 class animatedGroundTrack(object):
 
-    def __init__(self, recorder: Recorder, sample: int = 0):
+    def __init__(self, recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi: int = 300):
 
         df = pd.DataFrame.from_dict(recorder.dataDict)
 
@@ -146,7 +146,10 @@ class animatedGroundTrack(object):
             interval = 1
         )
 
-        anim.save("Groundtrack.mp4", fps=30)
+        if saveas == "mp4":
+            anim.save("Groundtrack.mp4", fps=30, dpi=dpi)
+        if saveas == "gif":
+            anim.save("Groundtrack.gif", writer='pillow', fps=30, dpi=dpi)
 
         plt.close()
 
