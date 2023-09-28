@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "leoss"
-version = "0.1.23"
+version = "0.1.24"
 description = "Low Earth Orbit Spacecraft Simulator"
 authors = ["space-hiro <144877753+space-hiro@users.noreply.github.com>"]
 readme = "README.md"

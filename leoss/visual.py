@@ -86,9 +86,12 @@ def groundTrack(recorder: Recorder, dateTime = 0):
 
 class animatedGroundTrack(object):
 
-    def __init__(self, recorder: Recorder):
+    def __init__(self, recorder: Recorder, sample: int = 0):
 
         df = pd.DataFrame.from_dict(recorder.dataDict)
+
+        if sample > 0:
+            df = df.iloc[::sample,:]   
 
         spacecraft = recorder.attachedTo
         self.system = spacecraft.system
