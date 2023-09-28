@@ -134,7 +134,7 @@ class animatedGroundTrack(object):
             transform=text_transform, fontsize=8,
             bbox=dict(facecolor='white', alpha=0.5, boxstyle='round'), fontdict={'family':'monospace'})
         
-        length = int(self.time[-1]/10)
+        length = (len(self.time)//10)
 
         plt.title(f'{spacecraft.name}', loc='Right')
 
@@ -142,11 +142,13 @@ class animatedGroundTrack(object):
         anim = FuncAnimation(
             self.fig,
             self.update,
-            frames = tqdm(np.linspace(self.time[0], self.time[-1], length), total=length,  position=0, desc='Animating Ground Track', bar_format='{l_bar}{bar:25}{r_bar}{bar:-25b}'),
+            frames = tqdm(np.linspace(self.time[0], self.time[-1], length),  position=0, desc='Animating Ground Track', bar_format='{l_bar}{bar:25}{r_bar}{bar:-25b}'),
             interval = 1
         )
 
         anim.save("Groundtrack.mp4", fps=30)
+
+        plt.close()
 
     def update(self, t_current):
 
