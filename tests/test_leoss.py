@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.1.25"
+    assert __version__ == "0.1.26"
 
 def test_01():
     system = LEOSS()

@@ -43,6 +43,7 @@ def groundTrack(recorder: Recorder, dateTime = 0):
         )
     if dateTime == 0:
         dateTime = system.datenow()
+
     currentTime = 0
     if isinstance(dateTime, datetime.datetime):
         currentTime = (dateTime - system.datetime0).total_seconds()
@@ -55,8 +56,7 @@ def groundTrack(recorder: Recorder, dateTime = 0):
     else:
         raise TypeError("Datetime input should be int, float or datettime type")
 
-    ax.set_title(f'Datetime: {dateTime}', horizontalalignment='left', loc='Left')
-    plt.title(f'{spacecraft.name}', loc='Right')
+    plt.suptitle(f'{spacecraft.name}\n{dateTime}')
     plot.set_alpha([ item<=currentTime for item in Times])
     ax.add_feature(Nightshade(dateTime, alpha=0.3))
 
@@ -94,6 +94,7 @@ class animatedGroundTrack(object):
             df = df.iloc[::sample,:]   
 
         spacecraft = recorder.attachedTo
+        self.name = spacecraft.name
         self.system = spacecraft.system
 
         self.lat = [ item[0] for item in df['Location'].values.tolist()[1:] ]
@@ -136,7 +137,7 @@ class animatedGroundTrack(object):
         
         length = (len(self.time)//10)
 
-        plt.title(f'{spacecraft.name}', loc='Right')
+        plt.suptitle(f'{spacecraft.name}\n{self.system.datetime0}')
 
         print("\nRun Animation (from "+str(self.time[0])+" to "+str(self.time[-1])+")")
         anim = FuncAnimation(
@@ -158,13 +159,14 @@ class animatedGroundTrack(object):
         dt_current = self.system.datetime0 + datetime.timedelta(seconds=t_current)
         self.NS.set_visible(False)
         self.NS = self.ax.add_feature(Nightshade(dt_current, alpha=0.3))
-        self.ax.set_title(f'Datetime: {dt_current}', horizontalalignment='left', loc='Left')
+
+        plt.suptitle(f'{self.name}\n{dt_current}')
         self.plot.set_alpha(self.time<=t_current)
 
         index = len([ item for item in self.time if item <= t_current ]) - 1
    
         self.spot.set_data([self.lon[index], self.lat[index]])
-        
+
         lat = str('%.2F'% self.lat[index]+"°")
         lon = str('%.2F'% self.lon[index]+"°")
         alt = str('%.2F'% self.alt[index]+"km")
