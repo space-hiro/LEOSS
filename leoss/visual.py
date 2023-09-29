@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.transforms import offset_copy
 
+import matplotlib.ticker as mticker
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+
 import pandas as pd
 import numpy as np
 
@@ -31,11 +34,29 @@ def groundTrack(recorder: Recorder, dateTime = 0):
     ax = plt.axes(projection=ccrs.PlateCarree())
 
     ax.stock_img()
-    ax.coastlines(resolution='110m')
+    # ax.coastlines(resolution='110m')
     
-    gl = ax.gridlines(draw_labels=True)
+    # gl = ax.gridlines(draw_labels=True)
+    # gl.top_labels = False
+    # gl.right_labels = False
+
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+                  linewidth=1, color='white', alpha = 0.25,
+                  linestyle='--')
+
+    # labels on bottom and left axes
     gl.top_labels = False
     gl.right_labels = False
+
+    # define the label style
+    gl.xlabel_style = {'size': 10, 'color': 'black'}
+    gl.ylabel_style = {'size': 10, 'color': 'black'}
+
+    # now we define exactly which ones to label and spruce up the labels
+    gl.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
+    gl.ylocator = mticker.FixedLocator([-80, -60, -40, -20, 0, 20, 40, 60, 80])
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
 
     plot = plt.scatter(Longitudes, Latitudes,
         color='red', s=0.2, zorder=2.5,
@@ -108,12 +129,31 @@ class animatedGroundTrack(object):
         self.ax = plt.axes(projection=ccrs.PlateCarree())
 
         self.ax.stock_img()
-        self.ax.coastlines(resolution='110m')
+        # self.ax.coastlines(resolution='110m')
         self.NS = self.ax.add_feature(Nightshade(self.system.datetime0, alpha=0.3))
-        
-        gl = self.ax.gridlines(draw_labels=True)
+
+
+        gl = self.ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+                    linewidth=1, color='white', alpha = 0.25,
+                    linestyle='--')
+
+        # labels on bottom and left axes
         gl.top_labels = False
         gl.right_labels = False
+
+        # define the label style
+        gl.xlabel_style = {'size': 10, 'color': 'black'}
+        gl.ylabel_style = {'size': 10, 'color': 'black'}
+
+        # now we define exactly which ones to label and spruce up the labels
+        gl.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
+        gl.ylocator = mticker.FixedLocator([-80, -60, -40, -20, 0, 20, 40, 60, 80])
+        gl.xformatter = LONGITUDE_FORMATTER
+        gl.yformatter = LATITUDE_FORMATTER
+
+        # gl = self.ax.gridlines(draw_labels=True)
+        # gl.top_labels = False
+        # gl.right_labels = False
 
         self.plot = plt.scatter(self.lon, self.lat,
             color='red', s=0.2, zorder=2.5,
