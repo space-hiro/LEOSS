@@ -105,6 +105,120 @@ class Vector():
             self.z / magnitude
         )
 
+class Quaternion():
+
+    def __init__(self, w=1.0, x=0.0, y=0.0, z=0.0):
+        self.w = w
+        self.x = x
+        self.y = y
+        self.z = z
+        if self.magnitude() != 1 and self.magnitude() > 0:
+            Q = self.normalize()
+            self.w = Q.w
+            self.x = Q.x
+            self.y = Q.y
+            self.z = Q.z 
+        elif self.magnitude == 0:
+            raise ValueError("Invalid quaternion, zero values")
+
+    def __repr__(self):
+        return f'Quaternion({self.w}, {self.x}, {self.y}, {self.z})'
+    
+    def __str__(self):
+        return f'Quaternion({self.w}, {self.x}, {self.y}, {self.z})'
+    
+    def __getitem__(self, item):
+        if item == 0:
+            return self.w
+        elif item == 1:
+            return self.x
+        elif item == 2:
+            return self.y
+        elif item == 3:
+            return self.z
+        else:
+            raise IndexError("There are only four elements in the quaternion")
+        
+    def __add__(self, other):
+        if isinstance(other, Quaternion):
+            q = Quaternion(
+                other.w * self.w - other.x * self.x - other.y * self.y - other.z * self.z,
+                other.x * self.w + other.w * self.x + other.z * self.y - other.y * self.z,
+                other.y * self.w - other.z * self.x + other.w * self.y + other.x * self.z,
+                other.z * self.w + other.y * self.x - other.x * self.y + other.w * self.z
+                )
+            return q.normalize()
+        else:
+            raise TypeError("Operand must a Quaternion")
+    
+    def __sub__(self, other):
+        if isinstance(other, Quaternion):
+            return Quaternion(
+                 other.w * self.w + other.x * self.x + other.y * self.y + other.z * self.z,
+                -other.x * self.w + other.w * self.x + other.z * self.y - other.y * self.z,
+                -other.y * self.w - other.z * self.x + other.w * self.y + other.x * self.z,
+                -other.z * self.w + other.y * self.x - other.x * self.y + other.w * self.z
+                )
+        else:
+            raise TypeError("Operand must a Quaternion")
+    
+    def __mul__(self, other):
+        if isinstance(other, (int, float)):
+            return Quaternion(
+                self.w * other,
+                self.x * other,
+                self.y * other,
+                self.z * other
+                )
+        else:
+            raise TypeError("Operand must be Quaternion, int, or float")
+        
+    def __rmul__(self, other):
+        return self * other
+        
+    def __truediv__(self, other):
+        if isinstance(other, (int, float)):
+            return Quaternion(
+                self.w / other,
+                self.x / other,
+                self.y / other,
+                self.z / other
+                )
+        else:
+            raise TypeError("Operand must be int, or float")
+        
+    def __eq__(self, other):
+        if isinstance(other, Quaternion):
+            if (self.w == other.w and self.x == other.x and self.y == other.y and self.z == other.z):
+                return True
+            elif (self-other).angle()*R2D < 1e-8:
+                return True
+            else:
+                return False
+        else:
+            raise TypeError("Operand must be Quaternion")
+
+    def magnitude(self):
+        return (self.w**2 + self.x**2 + self.y**2 + self.z**2)**0.5
+    
+    def normalize(self):
+        magnitude = self.magnitude()
+        return Quaternion(
+            self.w / magnitude,
+            self.x / magnitude,
+            self.y / magnitude,
+            self.z / magnitude
+        )
+    
+    def vector(self):
+        return Vector(self.x, self.y, self.z)
+    
+    def angle(self):
+        return 2*math.acos(self.w)
+    
+    def toMRP(self):
+        return Vector(self.x, self.y, self.z) / (1 + self.magnitude())
+
 class State():
 
     def __init__(self, mass=0.0, pos=Vector(), vel=Vector()):

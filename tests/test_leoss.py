@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.1.26"
+    assert __version__ == "0.1.27"
 
 def test_01():
     system = LEOSS()
@@ -319,3 +319,34 @@ def test_14():
     assert statedataf.velocity == Vector(4028.7141877464305, -3694.338983991167, 5372.97168210374)
     assert locationf == Vector(20.658246279489802, 142.76949414474478, 415.2313183538606)
     assert netforcef == Vector(364.382790906085, 176.1192072581338, -151.64453269308962) 
+
+def test_15():
+
+    q1 = Quaternion()
+    q2 = Quaternion()
+
+    assert q1 + q2 == Quaternion()
+    assert str(q1) == 'Quaternion(1.0, 0.0, 0.0, 0.0)'
+
+    q3 = Quaternion(1,1,1,1)
+    
+    assert q3 == Quaternion(0.5, 0.5, 0.5, 0.5)
+    assert q1 + q3 == q3
+    assert q3 + q3 == Quaternion(-0.5, 0.5, 0.5, 0.5)
+
+    q4 = Quaternion(1,0,3,2)
+
+    assert q4 == Quaternion(0.2672612419124244, 0.0, 0.8017837257372732, 0.5345224838248488)
+    assert q3 + q4 == Quaternion(-0.5345224838248488, 0.0, 0.2672612419124244, 0.8017837257372731)
+    assert q4 + q3 == Quaternion(-0.5345224838248488, 0.2672612419124244, 0.8017837257372732, 0.0)
+    assert q4[0] == 0.2672612419124244 == q4.w
+    assert q4[1] == 0.0 == q4.x
+    assert q4[2] == 0.8017837257372732 == q4.y
+    assert q4[3] == 0.5345224838248488 == q4.z
+    assert q4 * 2 == 2 * Quaternion(0.2672612419124244, 0.0, 0.8017837257372732, 0.5345224838248488)
+
+    q3q4 = q3 + q4
+    q4q3 = q4 + q3
+
+    assert (q3q4 - q3) == q4
+    assert (q4q3 - q4) == q3
