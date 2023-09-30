@@ -1,7 +1,8 @@
 import datetime
 import math
-from tqdm import tqdm
 import time as clock
+
+from tqdm import tqdm
 
 R2D = 180/math.pi
 D2R = math.pi/180
@@ -105,6 +106,121 @@ class Vector():
             self.z / magnitude
         )
 
+    def sum(self):
+        return self.x + self.y +self.z
+
+    def RPY_toYPR_quaternion(self, unit='deg'):
+        if unit == 'deg':
+            self.x = self.x * D2R
+            self.y = self.y * D2R
+            self.z = self.z * D2R
+            unit = 'rad'
+        if unit == 'rad':
+            phi   = self.x
+            theta = self.y
+            psi   = self.z
+            qW = math.cos(phi/2)*math.cos(theta/2)*math.cos(psi/2) + math.sin(phi/2)*math.sin(theta/2)*math.sin(psi/2)
+            qX = math.sin(phi/2)*math.cos(theta/2)*math.cos(psi/2) - math.cos(phi/2)*math.sin(theta/2)*math.sin(psi/2)
+            qY = math.cos(phi/2)*math.sin(theta/2)*math.cos(psi/2) + math.sin(phi/2)*math.cos(theta/2)*math.sin(psi/2)
+            qZ = math.cos(phi/2)*math.cos(theta/2)*math.sin(psi/2) - math.sin(phi/2)*math.sin(theta/2)*math.cos(psi/2)
+            return Quaternion(qW, qX, qY, qZ)
+        else:
+            raise ValueError("Unit should be either 'deg' or rad'")
+
+class Matrix():
+
+    def __init__(self, x=Vector(1,0,0), y=Vector(0,1,0), z=Vector(0,0,1)):
+        self.x = x
+        self.y = y
+        self.z = z
+        self.xx = x.x; self.yx = y.x; self.zx = z.x
+        self.xy = x.y; self.yy = y.y; self.zy = z.y
+        self.xz = x.z; self.yz = y.z; self.zz = z.z
+    
+    def __repr__(self):
+        return f'Matrix({self.xx}, {self.yx}, {self.zx}; {self.xy}, {self.yy}, {self.zy}; {self.xz}, {self.yz}, {self.zz})'
+    
+    def __str__(self):
+        return f'Matrix({self.xx}, {self.yx}, {self.zx}; {self.xy}, {self.yy}, {self.zy}; {self.xz}, {self.yz}, {self.zz})'
+
+    def transpose(self):
+        x = Vector(self.xx, self.yx, self.zx)
+        y = Vector(self.xy, self.yy, self.zy)
+        z = Vector(self.xz, self.yz, self.zz)
+        return Matrix(x, y, z)
+
+    def __mul__(self, other):
+        if isinstance(other, Vector):
+            T = self.transpose()
+            x = (T.x * other).sum()
+            y = (T.y * other).sum()
+            z = (T.z * other).sum()
+            return Vector(x, y, z)
+        elif isinstance(other, Matrix):
+            x = self * other.x
+            y = self * other.y
+            z = self * other.z
+            return Matrix(x, y, z)
+        elif isinstance(other, int) or isinstance(other, float):
+            return Matrix(self.x*other, self.y*other, self.z*other)
+        else:
+            raise TypeError("Operand should be a Vector, int or float")
+        
+    def __rmul__(self, other):
+        if isinstance(other, int) or isinstance(other, float):
+            return Matrix(self.x*other, self.y*other, self.z*other)
+        else:
+            raise TypeError("Operand should be int or float")
+
+    def trace(self):
+        return self.xx + self.yy + self.zz 
+
+    def isOrthogonal(self):
+        I = self * self.transpose()
+        return ( abs(I.trace() - 3.00) <= 1e-3)
+
+    def toQuaternion(self):
+        if self.isOrthogonal() == False:
+            raise ValueError("Matrix is not Orthogonal")
+        else:
+            B = []
+            B.append(0.25*(1+self.trace()))
+            B.append(0.25*(1+2*self.xx-self.trace()))
+            B.append(0.25*(1+2*self.yy-self.trace()))
+            B.append(0.25*(1+2*self.zz-self.trace()))
+
+            B0B1 = 0.25*( self.zy-self.yz )
+            B0B2 = 0.25*( self.xz-self.zx )
+            B0B3 = 0.25*( self.yx-self.xy )
+            B2B3 = 0.25*( self.zy+self.yz )
+            B3B1 = 0.25*( self.xz+self.zx )
+            B1B2 = 0.25*( self.yx+self.xy )
+            
+            b = [math.sqrt(item) for item in B]
+            Q = Quaternion()
+
+            if B[0] == max(B):
+                Q.w = b[0]
+                Q.x = B0B1/b[0]
+                Q.y = B0B2/b[0]
+                Q.z = B0B3/b[0]
+            elif B[1] == max(B):
+                Q.w = B0B1/b[1]
+                Q.x = b[1]
+                Q.y = B1B2/b[1]
+                Q.z = B3B1/b[1]
+            elif B[2] == max(B):
+                Q.w = B0B2/b[2]
+                Q.x = B1B2/b[2]
+                Q.y = b[2]
+                Q.z = B2B3/b[2]
+            elif B[3] == max(B):
+                Q.w = B0B3/b[3]
+                Q.x = B3B1/b[3]
+                Q.y = B2B3/b[3]
+                Q.z = b[3]
+            return Q
+
 class Quaternion():
 
     def __init__(self, w=1.0, x=0.0, y=0.0, z=0.0):
@@ -191,7 +307,7 @@ class Quaternion():
         if isinstance(other, Quaternion):
             if (self.w == other.w and self.x == other.x and self.y == other.y and self.z == other.z):
                 return True
-            elif (self-other).angle()*R2D < 1e-8:
+            elif abs((self-other).angle()*R2D) < 1e-8:
                 return True
             else:
                 return False
@@ -218,6 +334,23 @@ class Quaternion():
     
     def toMRP(self):
         return Vector(self.x, self.y, self.z) / (1 + self.magnitude())
+
+    def toMatrix(self):
+        x = Vector()
+        y = Vector()
+        z = Vector()
+        x.x = 1 - 2*(self.y**2 + self.z**2)
+        y.x = 2*self.x*self.y + 2*self.w*self.z
+        z.x = -2*self.w*self.y + 2*self.x*self.z
+
+        x.y = 2*self.x*self.y - 2*self.w*self.z
+        y.y = 1 - 2*(self.x**2+self.z**2)
+        z.y = 2*self.w*self.x + 2*self.y*self.z
+        
+        x.z = 2*self.w*self.y + 2*self.x*self.z
+        y.z = -2*self.w*self.x + 2*self.y*self.z
+        z.z = 1 - 2*(self.x**2 + self.y**2)
+        return Matrix(x, y, z)
 
 class State():
 
@@ -569,3 +702,13 @@ def simulateProgress(system: LEOSS, timeEnd, timeStep=1/32):
 
     t1 = clock.time()
     print("\nElapsed Time:\t"+str(t1-t0)+" sec.")
+
+def PRVtoQuaternion(PRV: Vector, Angle: int or float, unit='deg'):
+    if unit == 'deg':
+        Angle = Angle*D2R
+        unit = 'rad'
+    if unit == 'rad':   
+        vec = PRV.normalize()
+        return Quaternion( math.cos(Angle/2), vec.x*math.sin(Angle/2), vec.y*math.sin(Angle/2), vec.z*math.sin(Angle/2) )
+    else:
+        raise ValueError("Unit should be either in 'deg' or 'rad'")

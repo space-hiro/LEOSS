@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.1.27"
+    assert __version__ == "0.1.28"
 
 def test_01():
     system = LEOSS()
@@ -350,3 +350,94 @@ def test_15():
 
     assert (q3q4 - q3) == q4
     assert (q4q3 - q4) == q3
+
+def test_16():
+
+    M = Matrix()
+    V = Vector(5,3,4)
+
+    assert str(M) == 'Matrix(1, 0, 0; 0, 1, 0; 0, 0, 1)'
+    assert str(V) == 'Vector(5, 3, 4)'
+    assert str(M*V) == 'Vector(5, 3, 4)'
+    assert str(2*M) == 'Matrix(2, 0, 0; 0, 2, 0; 0, 0, 2)'
+    assert str(2*M*V) == 'Vector(10, 6, 8)'
+    assert str(M.trace()) == '3'
+
+    PRV = Vector(1,0,0)
+    Arg = 45
+    Q  = PRVtoQuaternion(PRV,Arg)
+    M  = Q.toMatrix()
+    assert Q == Quaternion(0.9238795325112867, 0.3826834323650898, 0.0, 0.0)
+    assert str(Q.toMatrix()) == 'Matrix(1.0, 0.0, 0.0; 0.0, 0.7071067811865475, 0.7071067811865476; 0.0, -0.7071067811865476, 0.7071067811865475)'
+    assert M.toQuaternion() == Quaternion(0.9238795325112867, 0.3826834323650898, 0.0, 0.0)
+    assert Q == M.toQuaternion()
+    assert M.isOrthogonal() 
+
+    PRV = Vector(0,1,0)
+    Arg = 45
+    Q = PRVtoQuaternion(PRV,Arg)
+    M  = Q.toMatrix()
+    assert Q == Quaternion(0.9238795325112867, 0.0, 0.3826834323650898, 0.0)
+    assert str(Q.toMatrix()) == 'Matrix(0.7071067811865475, 0.0, -0.7071067811865476; 0.0, 1.0, 0.0; 0.7071067811865476, 0.0, 0.7071067811865475)'
+    assert M.toQuaternion() == Quaternion(0.9238795325112867, 0.0, 0.3826834323650898, 0.0)
+    assert Q == M.toQuaternion() 
+    assert M.isOrthogonal()
+
+    PRV = Vector(0,0,1)
+    Arg = 45
+    Q = PRVtoQuaternion(PRV,Arg)
+    M  = Q.toMatrix()
+    assert Q == Quaternion(0.9238795325112867, 0.0, 0.0, 0.3826834323650898)
+    assert str(Q.toMatrix()) == 'Matrix(0.7071067811865475, 0.7071067811865476, 0.0; -0.7071067811865476, 0.7071067811865475, 0.0; 0.0, 0.0, 1.0)'
+    assert M.toQuaternion() == Quaternion(0.9238795325112867, 0.0, 0.0, 0.3826834323650898)
+    assert Q == M.toQuaternion()
+    assert M.isOrthogonal()
+
+    Vx = Vector(1,0,0)
+    Vy = Vector(0,1,0)
+    Vz = Vector(0,0,1)
+
+    M = Matrix(x=Vector(0.892539, -0.275451, 0.357073), y=Vector(0.157379, 0.932257, 0.325773), z=Vector(-0.422618, -0.234570, 0.875426))
+    assert M.toQuaternion() == Quaternion(0.9617980557268766, -0.14564985774912026, 0.20266494493242407, 0.11250542601505098)
+    assert M.isOrthogonal()
+
+    I = M * M.transpose()
+    assert I.isOrthogonal()
+
+    Mt = M.transpose()
+    assert (M * Mt * Vx).sum() - 1 <= 1e-3
+    assert (M * Mt * Vy).sum() - 1 <= 1e-3
+    assert (M * Mt * Vz).sum() - 1 <= 1e-3
+
+    M = Matrix(x=Vector(5,1,1), y=Vector(1,3,1), z=Vector(1,1,4))
+    Mt = M.transpose()
+    assert M*Vx == Vector(5,1,1)
+    assert Mt*Vx == Vector(5,1,1)
+    assert M*Vy == Vector(1,3,1)
+    assert Mt*Vy == Vector(1,3,1)
+    assert M*Vz == Vector(1,1,4)
+    assert Mt*Vz == Vector(1,1,4)
+
+    M = Matrix(x=Vector(5,1,2), y=Vector(1,3,2), z=Vector(1,2,4))
+    Mt = M.transpose()
+    assert M*Vx == Vector(5,1,2)
+    assert Mt*Vx == Vector(5,1,1)
+    assert M*Vy == Vector(1,3,2)
+    assert Mt*Vy == Vector(1,3,2)
+    assert M*Vz == Vector(1,2,4)
+    assert Mt*Vz == Vector(2,2,4)
+
+    Q_zrot = PRVtoQuaternion(Vz,30)
+    M_zrot = Q_zrot.toMatrix()
+    Q_yrot = PRVtoQuaternion(Vy,-60)
+    M_yrot = Q_yrot.toMatrix()
+    Q_xrot = PRVtoQuaternion(Vx,135)
+    M_xrot = Q_xrot.toMatrix()
+
+    Q_zyxrot = (Q_zrot + Q_yrot) + Q_xrot
+    M_zyxrot = M_xrot * M_yrot * M_zrot
+
+    assert Q_zyxrot == M_zyxrot.toQuaternion()
+
+    Euler = Vector(135,-60,30)
+    assert Euler.RPY_toYPR_quaternion() == Q_zyxrot
