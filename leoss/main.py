@@ -172,8 +172,27 @@ class Matrix():
         else:
             raise TypeError("Operand should be int or float")
 
+    def __truediv__(self, other):
+        if isinstance(other, int) or isinstance(other, float):
+            return Matrix(self.x/other, self.y/other, self.z/other)
+        else:
+            raise TypeError("Operand should be int or float")
+
     def trace(self):
         return self.xx + self.yy + self.zz 
+
+    def inverse(self):
+        m1 = self.xx; m2 = self.yx; m3 = self.zx
+        m4 = self.xy; m5 = self.yy; m6 = self.zy
+        m7 = self.xz; m8 = self.yz; m9 = self.zz
+        
+        x = Vector( m5*m9-m6*m8, m6*m7-m4*m9, m4*m8-m5*m7 )
+        y = Vector( m3*m8-m2*m9, m1*m9-m3*m7, m2*m7-m1*m8 )
+        z = Vector( m2*m6-m3*m5, m3*m4-m1*m6, m1*m5-m2*m4 )
+        inv = Matrix(x, y, z)
+
+        w = Vector(inv.xx, inv.yx, inv.zx)
+        return inv / (w*self.x).sum()
 
     def isOrthogonal(self):
         I = self * self.transpose()
@@ -228,14 +247,6 @@ class Quaternion():
         self.x = x
         self.y = y
         self.z = z
-        if self.magnitude() != 1 and self.magnitude() > 0:
-            Q = self.normalize()
-            self.w = Q.w
-            self.x = Q.x
-            self.y = Q.y
-            self.z = Q.z 
-        elif self.magnitude == 0:
-            raise ValueError("Invalid quaternion, zero values")
 
     def __repr__(self):
         return f'Quaternion({self.w}, {self.x}, {self.y}, {self.z})'
@@ -274,7 +285,7 @@ class Quaternion():
                 -other.x * self.w + other.w * self.x + other.z * self.y - other.y * self.z,
                 -other.y * self.w - other.z * self.x + other.w * self.y + other.x * self.z,
                 -other.z * self.w + other.y * self.x - other.x * self.y + other.w * self.z
-                )
+                ).normalize()
         else:
             raise TypeError("Operand must a Quaternion")
     
@@ -352,12 +363,23 @@ class Quaternion():
         z.z = 1 - 2*(self.x**2 + self.y**2)
         return Matrix(x, y, z)
 
+    def YPR_toRPY_vector(self):
+        Q = self.normalize()
+
+        phi   = math.atan2(2*(Q.w*Q.x + Q.y*Q.z),1-2*(Q.x**2 + Q.y**2))
+        theta = math.asin(2*(Q.w*Q.y-Q.z*Q.x))
+        psi   = math.atan2(2*(Q.w*Q.z + Q.x*Q.y),1-2*(Q.y**2 + Q.z**2))
+
+        return Vector(phi, theta, psi)
+
 class State():
 
-    def __init__(self, mass=0.0, pos=Vector(), vel=Vector()):
-        self.mass = mass
-        self.position = pos
-        self.velocity = vel
+    def __init__(self, mass=0.0, pos=Vector(), vel=Vector(), quat=Quaternion(), omega=Vector()):
+        self.mass       = mass
+        self.position   = pos
+        self.velocity   = vel
+        self.quaternion = quat
+        self.bodyrate   = omega
 
     def __getitem__(self, item):
         if isinstance(item, int):
@@ -382,7 +404,14 @@ class State():
         if isinstance(other, State):
             newstate = State()
             for i in range(0,len(self.__dict__),1):
-                newstate[i] = self[i] + other[i]
+                if isinstance(self[i], Quaternion):
+                    qw = self[i].w + other[i].w 
+                    qx = self[i].x + other[i].x
+                    qy = self[i].y + other[i].y
+                    qz = self[i].z + other[i].z
+                    newstate[i] = Quaternion(qw, qx, qy, qz)
+                else:
+                    newstate[i] = self[i] + other[i]
             return newstate
         else:
             raise TypeError("Operand must be a State")
@@ -391,7 +420,14 @@ class State():
         if isinstance(other, State):
             newstate = State()
             for i in range(0,len(self.__dict__),1):
-                newstate[i] = self[i] - other[i]
+                if isinstance(self[i], Quaternion):
+                    qw = self[i].w - other[i].w 
+                    qx = self[i].x - other[i].x
+                    qy = self[i].y - other[i].y
+                    qz = self[i].z - other[i].z
+                    newstate[i] = Quaternion(qw, qx, qy, qz)
+                else:
+                    newstate[i] = self[i] - other[i]
             return newstate
         else:
             raise TypeError("Operand must be a State")
@@ -443,9 +479,14 @@ class State():
 class Spacecraft():
 
     def __init__(self, name):
-        self.name = name
+        self.name  = name
+        self.size  = Vector(0,0,0)
         self.state = State()
-        self.netforce = Vector(0,0,0)
+        
+        self.netforce    = Vector(0,0,0)
+        self.nettorque   = Vector(0,0,0)
+        self.netmomentum = Vector(0,0,0)
+        
         self.location = Vector(0,0,0)
         self.system = None
 
@@ -457,6 +498,15 @@ class Spacecraft():
             self.state.mass = other
         else:
             raise TypeError("Operand should be int or float")
+
+    def getsize(self):
+        return self.size
+    
+    def setsize(self, other):
+        if isinstance(other, Vector):
+            self.size = other
+        else:
+            raise TypeError("Operand should be a Vector")
 
     def getposition(self):
         return self.state.position
@@ -475,18 +525,41 @@ class Spacecraft():
             self.state.velocity = other
         else:
             raise TypeError("Operand should be a Vector")
-        
+
+    def getbodyrate(self):
+        return self.state.bodyrate * R2D
+
+    def setbodyrate(self, other):
+        if isinstance(other, Vector):
+            self.state.bodyrate = other * D2R
+        else:
+            raise TypeError("Operance should be a vector in 'deg'")
+
     def derivative(self, state: State, time):
-        self.clearForces()
+        self.clearKinetics()
         deltaState = State()
+
         deltaState.mass = 0
+
         deltaState.position = state.velocity
+
         self.netforce = self.netforce + systemGravity(self.system, state.mass, state.position)
         deltaState.velocity = self.netforce/state.mass
+
+        deltaState.quaternion = quaternionDerivative(state.bodyrate, state.quaternion)
+
+        self.inertia = rectbodyInertia(self.size, state.mass)
+        self.netmomentum = self.netmomentum + self.inertia*state.bodyrate
+        self.nettorque = self.nettorque
+
+        deltaState.bodyrate = self.inertia.inverse()*(self.nettorque-state.bodyrate.cross(self.netmomentum))
+
         return deltaState
     
-    def clearForces(self):
-        self.netforce = Vector(0,0,0)
+    def clearKinetics(self):
+        self.netforce    = Vector(0,0,0)
+        self.nettorque   = Vector(0,0,0)
+        self.netmomentum = Vector(0,0,0)
 
     def __getitem__(self, item):
         if isinstance(item, str):
@@ -584,6 +657,7 @@ class LEOSS():
         for spacecraft in self.spacecraftObjects:
             spacecraft.location = self.locate(spacecraft)
             newstate = runggeKutta4(spacecraft.derivative, spacecraft.state, self.time, deltaTime)
+            newstate.quaternion = newstate.quaternion.normalize()
             spacecraft.state = newstate
             self.recorderObjects[spacecraft.name].update(self.datenow()+datetime.timedelta(seconds=deltaTime))
         self.time = self.time + deltaTime
@@ -712,3 +786,19 @@ def PRVtoQuaternion(PRV: Vector, Angle: int or float, unit='deg'):
         return Quaternion( math.cos(Angle/2), vec.x*math.sin(Angle/2), vec.y*math.sin(Angle/2), vec.z*math.sin(Angle/2) )
     else:
         raise ValueError("Unit should be either in 'deg' or 'rad'")
+    
+def quaternionDerivative(omega: Vector, quat: Quaternion):
+    qdotW =       0*quat.w - omega.x*quat.x - omega.y*quat.y - omega.z*quat.z
+    qdotX = omega.x*quat.w +       0*quat.x + omega.z*quat.y - omega.y*quat.z
+    qdotY = omega.y*quat.w - omega.z*quat.x +       0*quat.y + omega.x*quat.z
+    qdotZ = omega.z*quat.w + omega.y*quat.x - omega.x*quat.y +       0*quat.z
+    return (1/2) * Quaternion( qdotW, qdotX, qdotY, qdotZ )
+
+def rectbodyInertia(size: Vector, mass: int or float):
+    Lx = size.x
+    Ly = size.y
+    Lz = size.z
+    x = Vector(Ly**2+Lz**2, 0, 0)
+    y = Vector(0, Lx**2+Lz**2, 0)
+    z = Vector(0, 0, Lx**2+Ly**2)
+    return (mass/12.0) * Matrix(x,y,z)
