@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.1.29"
+    assert __version__ == "0.1.30"
 
 def test_01():
     system = LEOSS()
@@ -84,10 +84,12 @@ def test_05():
     system.addSpacecraft("DIWATA-2")
 
     system[0].setmass(4.5)
+    system[0].setsize(Vector(0.1,0.1,0.1))
     system[0].setposition(Vector(100,60,80))
     system[0].setvelocity(Vector(5,3,4))
 
     system[1].setmass(3.5)
+    system[1].setsize(Vector(0.1,0.1,0.1))
     system[1].setposition(Vector(60,100,50))
     system[1].setvelocity(Vector(5,4,3))
 
@@ -145,6 +147,7 @@ def test_07():
 
     system.addSpacecraft("DIWATA-1")
     system[0].setmass(4.00)
+    system[0].setsize(Vector(0.1,0.1,0.1))
     system[0].setposition(Vector(-3398.36655479e3, 2536.91064491e3,  5312.67851581e3 ))
     system[0].setvelocity(Vector(-5.05043202e3, -5.73213209e3, -0.49795572e3))
 
@@ -186,6 +189,7 @@ def test_10():
     assert system.datenow() == datetime.datetime.today()
 
     system[0].setmass(4.00)
+    system[0].setsize(Vector(0.1,0.1,0.1))
     system[0].setposition(Vector(-3398.36655479e3, 2536.91064491e3,  5312.67851581e3 ))
     system[0].setvelocity(Vector(-5.05043202e3, -5.73213209e3, -0.49795572e3))
 
@@ -225,6 +229,7 @@ def test_12():
 
     # r v state vectors given here are calculated from sgp4 (analytical) python library
     spacecraft["DIWATA"].setmass(50)
+    spacecraft["DIWATA"].setsize(Vector(0.1,0.1,0.1))
     spacecraft["DIWATA"].setposition(1e3*Vector(4395.079058029986, 3631.5889348004957, -3712.575674067216))
     spacecraft["DIWATA"].setvelocity(1e3*Vector(-5.76886641743168, 2.5823185921356733, -4.310210403510053))
 
@@ -263,6 +268,7 @@ def test_13():
     recorder   = system.getRecorders()
 
     spacecraft["DIWATA"].setmass(50)
+    spacecraft["DIWATA"].setsize(Vector(0.1,0.1,0.1))
     spacecraft["DIWATA"].setposition(1e3*Vector(4395.079058029986, 3631.5889348004957, -3712.575674067216))
     spacecraft["DIWATA"].setvelocity(1e3*Vector(-5.76886641743168, 2.5823185921356733, -4.310210403510053))
 
@@ -293,6 +299,7 @@ def test_14():
     recorder   = system.getRecorders()
 
     spacecraft["DIWATA"].setmass(50)
+    spacecraft["DIWATA"].setsize(Vector(0.1,0.1,0.1))
     spacecraft["DIWATA"].setposition(1e3*Vector(4395.079058029986, 3631.5889348004957, -3712.575674067216))
     spacecraft["DIWATA"].setvelocity(1e3*Vector(-5.76886641743168, 2.5823185921356733, -4.310210403510053))
 
