@@ -38,7 +38,7 @@ class Vector():
                 self.z + other.z
                 )
         else:
-            raise TypeError("Operance must a Vector")
+            raise TypeError("Operand must a Vector")
     
     def __sub__(self, other):
         if isinstance(other, Vector):
@@ -48,7 +48,7 @@ class Vector():
                 self.z - other.z
                 )
         else:
-            raise TypeError("Operance must a Vector")
+            raise TypeError("Operand must a Vector")
     
     def __mul__(self, other):
         if isinstance(other, Vector):
@@ -526,6 +526,20 @@ class Spacecraft():
         else:
             raise TypeError("Operand should be a Vector")
 
+    def getorientation(self, unit='deg'):
+        if unit == 'deg':
+            return self.state.quaternion.YPR_toRPY_vector()*R2D
+        elif unit == 'rad':
+            return self.state.quaternion.YPR_toRPY_vector()
+        else:
+            raise ValueError("Ooperance should be 'deg' or 'rad'")
+
+    def setorientation(self, other):
+        if isinstance(other, Vector):
+            self.state.quaternion = other.RPY_toYPR_quaternion()
+        else:
+            raise TypeError("Operand should be a vector in 'deg'")
+
     def getbodyrate(self):
         return self.state.bodyrate * R2D
 
@@ -533,7 +547,7 @@ class Spacecraft():
         if isinstance(other, Vector):
             self.state.bodyrate = other * D2R
         else:
-            raise TypeError("Operance should be a vector in 'deg'")
+            raise TypeError("Operand should be a vector in 'deg/s'")
 
     def derivative(self, state: State, time):
         self.clearKinetics()

@@ -27,20 +27,31 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
     spacecraft = recorder.attachedTo
     system = spacecraft.system
 
+    xs =spacecraft.size.x/min(spacecraft.size)
+    ys =spacecraft.size.y/min(spacecraft.size)
+    zs =spacecraft.size.z/min(spacecraft.size)
+
+    ratio = max(spacecraft.size)/min(spacecraft.size)
+
     if sample > 0:
         df = df.iloc[::sample,:]   
 
     States      = [ item for item in df['State'].values.tolist()[1:] ]
+    Positions   = [ item.position for item in df['State'].values.tolist()[1:] ]
     Quaternions = [ item.quaternion for item in df['State'].values.tolist()[1:] ]
     Bodyrates   = [ item.bodyrate*R2D for item in df['State'].values.tolist()[1:] ]
     Datetimes   = [ item for item in df['Datetime'] ][1:]
     Times       = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][1:] ]
 
-    fig = plt.figure(figsize=(10,5))
+    fig = plt.figure(figsize=(18,9))
+    fig.tight_layout()
     ax1 = fig.add_subplot(3,2,2)
     ax2 = fig.add_subplot(3,2,4)
-    ax3 = fig.add_subplot(1,2,1, projection='3d')
+    ax3 = fig.add_subplot(2,4,1, projection='3d')
     ax4 = fig.add_subplot(3,2,6)
+    ax5 = fig.add_subplot(2,4,2, projection='3d')
+    ax6 = fig.add_subplot(2,4,5, projection='3d')
+    ax7 = fig.add_subplot(2,4,6, projection='3d')
 
     QuatW = [ q.w for q in Quaternions ]
     QuatX = [ q.x for q in Quaternions ]
@@ -55,7 +66,7 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
     Pitch = [ item.y*R2D for item in Eulers ]
     Yaw   = [ item.z*R2D for item in Eulers ]
 
-    Matrices = [ q.toMatrix() for q in Quaternions ]
+    Matrices = [ q.toMatrix().transpose() for q in Quaternions ]
 
     ln1, = ax1.plot([],[], label='q0')
     ln2, = ax1.plot([],[], label='q1')
@@ -72,18 +83,52 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
     ln13, = ax4.plot([],[], label='pitch')
     ln14, = ax4.plot([],[], label='yaw')
 
+    ln15, = ax5.plot([],[],[])
+    ln16, = ax5.plot([],[],[])
+    ln17, = ax5.plot([],[],[])
+
+    ln18, = ax6.plot([],[],[])
+    ln19, = ax6.plot([],[],[])
+    ln20, = ax6.plot([],[],[])
+
+    ln21, = ax6.plot([],[],[])
+    ln22, = ax6.plot([],[],[])
+    ln23, = ax6.plot([],[],[])
+    
+
     ax1.grid()
     ax2.grid()
-    ax3.view_init(30,30)
+    ax3.view_init(30,20)
+    ax5.view_init(0,0)
+    ax6.view_init(0,90)
+    ax7.view_init(90,0)
     ax4.grid()
+
+    ax1.title.set_text(f'Quaternion')
+    ax2.title.set_text(f'Body Rates (deg/s)')
+    ax4.title.set_text(f'Euler Angles (deg)')
+
+    plt.style.use("Solarize_Light2")
+
 
     def init():
         ax1.set_ylim(-1.1,1.1)
         ax4.set_ylim(-190,190)
-        return ln1, ln2, ln3, ln4, ln5, ln6, ln7, ln8, ln9, ln10, ln11, ln12, ln13, ln14
+
+        for axis in ax5.xaxis, ax6.yaxis, ax7.zaxis:
+            axis.set_label_position('none')
+            axis.set_ticks_position('none')
+
+        ax6.zaxis.set_label_position('upper')
+        ax6.zaxis.set_ticks_position('upper')    
+
+        plt.subplots_adjust(wspace=0, hspace=0.3, left=0)   
+
+        return ln1, ln2, ln3, ln4, ln5, ln6, ln7, ln8, ln9, ln10, ln11, ln12, ln13, ln14, \
+                ln15, ln16, ln17, ln18, ln19, ln20, ln21, ln22, ln23,
 
     def update(frame):
-        plt.suptitle(f'{spacecraft.name}\n{Datetimes[frame]}')
+        plt.suptitle(f'{spacecraft.name}\n{Datetimes[frame]}', fontname='monospace')
 
         ln1.set_data(Times[0: frame], QuatW[0: frame])
         ln2.set_data(Times[0: frame], QuatX[0: frame])
@@ -99,41 +144,50 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
         xaxis = Vector(1,0,0)
         yaxis = Vector(0,1,0)
         zaxis = Vector(0,0,1)
-        maxis = spacecraft.inertia*Bodyrates[frame]
+        maxis = Matrices[frame] * spacecraft.inertia*Bodyrates[frame]
 
-        xaxis = Matrices[frame] * xaxis
-        yaxis = Matrices[frame] * yaxis
-        zaxis = Matrices[frame] * zaxis
+        maxisZ = maxis.normalize()
+        maxisX = maxisZ.cross(zaxis).normalize()
+        maxisY = maxisZ.cross(maxisX).normalize()
+        MomentumRotation = Matrix(maxisX, maxisY,maxisZ)
 
-        xFaceP1 = Matrices[frame] * Vector( 1,-1, 1)/3
-        xFaceP2 = Matrices[frame] * Vector( 1, 1, 1)/3
-        xFaceP3 = Matrices[frame] * Vector( 1, 1,-1)/3
-        xFaceP4 = Matrices[frame] * Vector( 1,-1,-1)/3
+        Rotation = Matrices[frame]
+        Rotation = MomentumRotation.transpose() * Matrices[frame]
+        maxisLine = MomentumRotation.transpose() * maxis * ratio * 2
 
-        nxFaceP1 = Matrices[frame] * Vector(-1, 1, 1)/3
-        nxFaceP2 = Matrices[frame] * Vector(-1,-1, 1)/3
-        nxFaceP3 = Matrices[frame] * Vector(-1,-1,-1)/3
-        nxFaceP4 = Matrices[frame] * Vector(-1, 1,-1)/3
+        xaxis = Rotation * xaxis * xs * 2
+        yaxis = Rotation * yaxis * ys * 2
+        zaxis = Rotation * zaxis * zs * 2
 
-        yFaceP1 = Matrices[frame] * Vector( 1, 1, 1)/3
-        yFaceP2 = Matrices[frame] * Vector(-1, 1, 1)/3
-        yFaceP3 = Matrices[frame] * Vector(-1, 1,-1)/3
-        yFaceP4 = Matrices[frame] * Vector( 1, 1,-1)/3
+        xFaceP1 = Rotation * Vector( xs,-ys, zs)
+        xFaceP2 = Rotation * Vector( xs, ys, zs)
+        xFaceP3 = Rotation * Vector( xs, ys,-zs)
+        xFaceP4 = Rotation * Vector( xs,-ys,-zs)
 
-        nyFaceP1 = Matrices[frame] * Vector(-1,-1, 1)/3
-        nyFaceP2 = Matrices[frame] * Vector( 1,-1, 1)/3
-        nyFaceP3 = Matrices[frame] * Vector( 1,-1,-1)/3
-        nyFaceP4 = Matrices[frame] * Vector(-1,-1,-1)/3
+        nxFaceP1 = Rotation * Vector(-xs, ys, zs)
+        nxFaceP2 = Rotation * Vector(-xs,-ys, zs)
+        nxFaceP3 = Rotation * Vector(-xs,-ys,-zs)
+        nxFaceP4 = Rotation * Vector(-xs, ys,-zs)
 
-        zFaceP1 = Matrices[frame] * Vector(-1,-1, 1)/3
-        zFaceP2 = Matrices[frame] * Vector(-1, 1, 1)/3
-        zFaceP3 = Matrices[frame] * Vector( 1, 1, 1)/3
-        zFaceP4 = Matrices[frame] * Vector( 1,-1, 1)/3
+        yFaceP1 = Rotation * Vector( xs, ys, zs)
+        yFaceP2 = Rotation * Vector(-xs, ys, zs)
+        yFaceP3 = Rotation * Vector(-xs, ys,-zs)
+        yFaceP4 = Rotation * Vector( xs, ys,-zs)
 
-        nzFaceP1 = Matrices[frame] * Vector(-1,-1,-1)/3
-        nzFaceP2 = Matrices[frame] * Vector(-1, 1,-1)/3
-        nzFaceP3 = Matrices[frame] * Vector( 1, 1,-1)/3
-        nzFaceP4 = Matrices[frame] * Vector( 1,-1,-1)/3
+        nyFaceP1 = Rotation * Vector(-xs,-ys, zs)
+        nyFaceP2 = Rotation * Vector( xs,-ys, zs)
+        nyFaceP3 = Rotation * Vector( xs,-ys,-zs)
+        nyFaceP4 = Rotation * Vector(-xs,-ys,-zs)
+
+        zFaceP1 = Rotation * Vector(-xs,-ys, zs)
+        zFaceP2 = Rotation * Vector(-xs, ys, zs)
+        zFaceP3 = Rotation * Vector( xs, ys, zs)
+        zFaceP4 = Rotation * Vector( xs,-ys, zs)
+
+        nzFaceP1 = Rotation * Vector(-xs,-ys,-zs)
+        nzFaceP2 = Rotation * Vector(-xs, ys,-zs)
+        nzFaceP3 = Rotation * Vector( xs, ys,-zs)
+        nzFaceP4 = Rotation * Vector( xs,-ys,-zs)
 
         xFaceX = np.array([xFaceP1.x, xFaceP2.x, xFaceP3.x, xFaceP4.x])
         xFaceY = np.array([xFaceP1.y, xFaceP2.y, xFaceP3.y, xFaceP4.y])
@@ -190,22 +244,60 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
         nzFace[:,2] = nzFaceZ
 
         ax3.clear()
-        ax3.set_xlim(-1,1)
-        ax3.set_ylim(-1,1)
-        ax3.set_zlim(-1,1)
+        ax3.set_xlim(-ratio,ratio)
+        ax3.set_ylim(-ratio,ratio)
+        ax3.set_zlim(-ratio,ratio)
+        ax3.grid(False)
+        ln8,  = ax3.plot([0,xaxis.x],[0,xaxis.y],[0,xaxis.z],c='red',   linewidth=1.0, zorder=5, linestyle='--')
+        ln9,  = ax3.plot([0,yaxis.x],[0,yaxis.y],[0,yaxis.z],c='green', linewidth=1.0, zorder=5, linestyle='--')
+        ln10, = ax3.plot([0,zaxis.x],[0,zaxis.y],[0,zaxis.z],c='blue',  linewidth=1.0, zorder=5, linestyle='--')
+        ln11, = ax3.plot([0,maxisLine.x],[0,maxisLine.y],[0,maxisLine.z],c='orange',linewidth=1.0, zorder=5, linestyle='-')
+        ax3.add_collection(Poly3DCollection([xFace, yFace, zFace], facecolors='cyan', linewidths=1, edgecolors='k', alpha=.50))
+        ax3.add_collection(Poly3DCollection([nxFace, nyFace, nzFace], facecolors='cyan', linewidths=1, edgecolors='k', alpha=.50))
 
-        ln8,  = ax3.plot([0,xaxis.x],[0,xaxis.y],[0,xaxis.z],c='red', zorder=5)
-        ln9,  = ax3.plot([0,yaxis.x],[0,yaxis.y],[0,yaxis.z],c='green', zorder=5)
-        ln10, = ax3.plot([0,zaxis.x],[0,zaxis.y],[0,zaxis.z],c='blue', zorder=5)
-        # ln11, = ax3.plot([0,maxis.x],[0,maxis.y],[0,maxis.z],c='orange')
+        scale = 2.0
+        ax5.clear()
+        ax5.set_xlim(-ratio*scale,ratio*scale)
+        ax5.set_ylim(-ratio*scale,ratio*scale)
+        ax5.set_zlim(-ratio*scale,ratio*scale)
+        ax5.grid(False)
+        ln15,  = ax5.plot([0,xaxis.x],[0,xaxis.y],[0,xaxis.z],c='red',   linewidth=1.0, zorder=5, linestyle='--')
+        ln16,  = ax5.plot([0,yaxis.x],[0,yaxis.y],[0,yaxis.z],c='green', linewidth=1.0, zorder=5, linestyle='--')
+        ln17, = ax5.plot([0,zaxis.x],[0,zaxis.y],[0,zaxis.z],c='blue',  linewidth=1.0, zorder=5, linestyle='--')
+        ax5.add_collection(Poly3DCollection([xFace, yFace, zFace], facecolors='cyan', linewidths=1, edgecolors='k', alpha=.50))
+        ax5.add_collection(Poly3DCollection([nxFace, nyFace, nzFace], facecolors='cyan', linewidths=1, edgecolors='k', alpha=.50))
 
-        ax3.add_collection(Poly3DCollection([xFace, yFace, zFace], facecolors='white', linewidths=1, edgecolors='k', alpha=.50))
-        ax3.add_collection(Poly3DCollection([nxFace, nyFace, nzFace], facecolors='white', linewidths=1, edgecolors='k', alpha=.50))
+        ax6.clear()
+        ax6.set_xlim(-ratio*scale,ratio*scale)
+        ax6.set_ylim(-ratio*scale,ratio*scale)
+        ax6.set_zlim(-ratio*scale,ratio*scale)
+        ax6.grid(False)
+        ln18,  = ax6.plot([0,xaxis.x],[0,xaxis.y],[0,xaxis.z],c='red',   linewidth=1.0, zorder=5, linestyle='--')
+        ln19,  = ax6.plot([0,yaxis.x],[0,yaxis.y],[0,yaxis.z],c='green', linewidth=1.0, zorder=5, linestyle='--')
+        ln20, = ax6.plot([0,zaxis.x],[0,zaxis.y],[0,zaxis.z],c='blue',  linewidth=1.0, zorder=5, linestyle='--')
+        ax6.add_collection(Poly3DCollection([xFace, yFace, zFace], facecolors='cyan', linewidths=1, edgecolors='k', alpha=.50))
+        ax6.add_collection(Poly3DCollection([nxFace, nyFace, nzFace], facecolors='cyan', linewidths=1, edgecolors='k', alpha=.50))
+
+        ax7.clear()
+        ax7.set_xlim(-ratio*scale,ratio*scale)
+        ax7.set_ylim(-ratio*scale,ratio*scale)
+        ax7.set_zlim(-ratio*scale,ratio*scale)
+        ax7.grid(False)
+        ln21,  = ax7.plot([0,xaxis.x],[0,xaxis.y],[0,xaxis.z],c='red',   linewidth=1.0, zorder=5, linestyle='--')
+        ln22,  = ax7.plot([0,yaxis.x],[0,yaxis.y],[0,yaxis.z],c='green', linewidth=1.0, zorder=5, linestyle='--')
+        ln23, = ax7.plot([0,zaxis.x],[0,zaxis.y],[0,zaxis.z],c='blue',  linewidth=1.0, zorder=5, linestyle='--')
+        ax7.add_collection(Poly3DCollection([xFace, yFace, zFace], facecolors='cyan', linewidths=1, edgecolors='k', alpha=.50))
+        ax7.add_collection(Poly3DCollection([nxFace, nyFace, nzFace], facecolors='cyan', linewidths=1, edgecolors='k', alpha=.50))
+
+        ax3.set_title(f'3D View\nFrame = Angular Momentum Vector', fontsize=10, fontname='monospace')
+        ax5.set_title(f'Perspective Along X', fontsize=10, fontname='monospace', y=-0.01)
+        ax6.set_title(f'Perspective Along Y', fontsize=10, fontname='monospace', y=-0.01)
+        ax7.set_title(f'Perspective Along Z', fontsize=10, fontname='monospace', y=-0.01)
 
         if frame > 0:
-            ax1.set_xlim(Times[0], Times[frame]+10)
-            ax2.set_xlim(Times[0], Times[frame]+10)
-            ax4.set_xlim(Times[0], Times[frame]+10)
+            ax1.set_xlim(Times[0]-1, Times[frame]+10)
+            ax2.set_xlim(Times[0]-1, Times[frame]+10)
+            ax4.set_xlim(Times[0]-1, Times[frame]+10)
             maxV = 0
             for rate in Bodyrates[0: frame]:
                 lis = abs(np.array([rate.x, rate.y, rate.z]))
@@ -218,7 +310,8 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
             ax2.legend(loc='center left', bbox_to_anchor=(1,0.5))
             ax4.legend(loc='center left', bbox_to_anchor=(1,0.5))
 
-        return ln1, ln2, ln3, ln4, ln5, ln6, ln7, ln8, ln9, ln10, ln11, ln12, ln13, ln14
+        return ln1, ln2, ln3, ln4, ln5, ln6, ln7, ln8, ln9, ln10, ln11, ln12, ln13, ln14, \
+                ln15, ln16, ln17, ln18, ln19, ln20, ln21, ln22, ln23,
 
     print("\nRun Animation (from "+str(Times[0])+" to "+str(Times[-1])+")")
     anim = FuncAnimation(
