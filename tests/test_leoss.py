@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.1.31"
+    assert __version__ == "0.1.32"
 
 def test_01():
     system = LEOSS()
@@ -443,9 +443,21 @@ def test_16():
     M_xrot = Q_xrot.toMatrix()
 
     Q_zyxrot = (Q_zrot + Q_yrot) + Q_xrot
-    M_zyxrot = M_xrot * M_yrot * M_zrot
+    M_zyxrot = M_xrot * (M_yrot * M_zrot)
 
     assert Q_zyxrot == M_zyxrot.toQuaternion()
 
     Euler = Vector(135,-60,30)
     assert Euler.RPY_toYPR_quaternion() == Q_zyxrot
+
+    assert (Q_zyxrot.rotate(Vx) - M_zyxrot.transpose() * Vx).magnitude() <= 1e-8
+
+    Q_z = PRVtoQuaternion(Vz, 90)
+    M_z = Q_z.toMatrix()
+
+    assert (M_z.x - Vector(0,-1,0)).magnitude() <= 1e-8
+    assert (M_z.y - Vector(1,0,0)).magnitude() <= 1e-8
+    assert (M_z.z - Vector(0,0,1)).magnitude() <= 1e-8
+    assert (Vector(0,1,0) - M_z.transpose() * Vx).magnitude() <= 1e-8
+    assert (Vector(0,-1,0) - Q_z.conjugate().rotate(Vx)).magnitude() <= 1e-8
+    assert (Vector(0,1,0) - Q_z.rotate(Vx)).magnitude() <= 1e-8

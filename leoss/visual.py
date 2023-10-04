@@ -36,6 +36,9 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
     if sample > 0:
         df = df.iloc[::sample,:]   
 
+    df2 = pd.DataFrame.from_dict(recorder.dataDict).iloc[df.index[-1]+1:,:]
+    df = pd.concat([df, df2], ignore_index=True, axis=0)
+
     States      = [ item for item in df['State'].values.tolist()[1:] ]
     Positions   = [ item.position for item in df['State'].values.tolist()[1:] ]
     Quaternions = [ item.quaternion for item in df['State'].values.tolist()[1:] ]
@@ -147,13 +150,17 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
         maxis = Matrices[frame] * spacecraft.inertia*Bodyrates[frame]
 
         maxisZ = maxis.normalize()
-        maxisX = maxisZ.cross(zaxis).normalize()
+        if maxisZ.cross(zaxis).magnitude() == 0:
+            maxisX = maxisZ.cross(xaxis).normalize()
+        else:
+            maxisX = maxisZ.cross(zaxis).normalize()
         maxisY = maxisZ.cross(maxisX).normalize()
         MomentumRotation = Matrix(maxisX, maxisY,maxisZ)
 
         Rotation = Matrices[frame]
-        Rotation = MomentumRotation.transpose() * Matrices[frame]
-        maxisLine = MomentumRotation.transpose() * maxis * ratio * 2
+        # Rotation = MomentumRotation.transpose() * Matrices[frame]
+        # maxisLine = MomentumRotation.transpose() * maxis * ratio * 2
+        maxisLine = maxis * ratio * 2
 
         xaxis = Rotation * xaxis * xs * 2
         yaxis = Rotation * yaxis * ys * 2
@@ -317,7 +324,7 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
     anim = FuncAnimation(
         fig,
         update,
-        frames = tqdm(np.arange(0, len(Times), 1), position=0, desc='Animating Attitude Track', bar_format='{l_bar}{bar:25}{r_bar}{bar:-25b}'),
+        frames = tqdm(np.arange(0, len(Times), 1), total=len(Times)-1, position=0, desc='Animating Attitude Track', bar_format='{l_bar}{bar:25}{r_bar}{bar:-25b}'),
         interval = 30,
         init_func = init,
         blit = True

@@ -371,6 +371,20 @@ class Quaternion():
         psi   = math.atan2(2*(Q.w*Q.z + Q.x*Q.y),1-2*(Q.y**2 + Q.z**2))
 
         return Vector(phi, theta, psi)
+    
+    def rotate(self, other: Vector):
+        if isinstance(other, Vector):
+            Rt = Quaternion(self.w, -self.x, -self.y, -self.z)
+            P  = Quaternion(0, other.x, other.y, other.z)
+            RP = hamiltonProduct(self, P)
+            RPRt = hamiltonProduct(RP, Rt)
+            Vec = Vector(RPRt.x, RPRt.y, RPRt.z)
+            return Vec
+        else:
+            raise TypeError("Operand should be a Vector")
+
+    def conjugate(self):
+        return Quaternion(self.w, -self.x, -self.y, -self.z)
 
 class State():
 
@@ -816,3 +830,12 @@ def rectbodyInertia(size: Vector, mass: int or float):
     y = Vector(0, Lx**2+Lz**2, 0)
     z = Vector(0, 0, Lx**2+Ly**2)
     return (mass/12.0) * Matrix(x,y,z)
+
+def hamiltonProduct(q1: Quaternion, q2: Quaternion):
+
+    W = q1.w*q2.w - q1.x*q2.x - q1.y*q2.y - q1.z*q2.z
+    X = q1.w*q2.x + q1.x*q2.w + q1.y*q2.z - q1.z*q2.y
+    Y = q1.w*q2.y - q1.x*q2.z + q1.y*q2.w + q1.z*q2.x
+    Z = q1.w*q2.z + q1.x*q2.y - q1.y*q2.x + q1.z*q2.w
+
+    return Quaternion(W, X, Y, Z)
