@@ -6,6 +6,13 @@ def test_version():
     assert __version__ == "0.1.32"
 
 def test_01():
+    '''
+    Test LEOSS Class Implementation.
+    LEOSS object creation
+    addSpacecraft method -- add new "DIWATA-1" and "DIWATA-2" Spacecraft Class object to system (LEOSS Class)
+    listSpacecraft method -- list the names of Spacecraft Class objects in system
+    numSpacecraft method -- count number of Spacecraft Class objects in system
+    '''
     system = LEOSS()
     system.addSpacecraft("DIWATA-1")
     system.addSpacecraft("DIWATA-2")
@@ -14,6 +21,18 @@ def test_01():
     assert system.numSpacecraft() == 2
 
 def test_02():
+    '''
+    Test Vector Class Implementation.
+    Vector Addition
+    Vector Subtraction
+    Vector Element Wise Multiplication
+    Vector Scalar Multiplication
+    Vector Cross Product
+    Vector Normalization
+    __getitem__ method
+    __str__ method
+    __repr__ method
+    '''
     a = Vector(1,1,1)
     b = Vector(2,2,2)
     c = 3
@@ -38,6 +57,15 @@ def test_02():
     assert str(d) == "Vector(1, 2, 3)"
 
 def test_03():
+    '''
+    __getitem__ method for LEOSS class
+    setmass method for Spacecraft class
+    getmass method fpr Spacecraft class
+    setposition method for Spacecraft class
+    getposition method for Spacecraft class
+    setvelocity method for Spacecraft class
+    getvelocity method for Spacecraft class
+    '''
     system = LEOSS()
 
     system.addSpacecraft("DIWATA-1")
@@ -61,7 +89,14 @@ def test_03():
     assert system[1].getvelocity() == Vector(100, 60, 80)
 
 def test_04():
-
+    '''
+    Test State Class Implementation.
+    State Addition __add__ (element wise)
+    State Subtraction __sub__ (element wise)
+    State Multiplication __mul__ (element wise)
+    State Reverse Multiplication __rmul__ (element wise)
+    State Floor Division __truediv__ (element wise)
+    '''
     system = LEOSS()
 
     system.addSpacecraft("DIWATA")
@@ -76,7 +111,11 @@ def test_04():
     # assert str(system[0].state) == "State(4.5, Vector(100, 60, 80), Vector(5, 3, 4))" 
 
 def test_05():
-
+    '''
+    Test LEOSS class methods.
+    advance1timestep method -- move forward the system with one time step
+    verify that the position updates with the velocity as derivatives
+    '''
     system = LEOSS()
     system.mu = 0
 
@@ -123,6 +162,10 @@ def test_05():
     assert system[1].getvelocity() == Vector(5,4,3)
 
 def test_06():
+    '''
+    Test State methods.
+    __getitem__ method
+    '''
 
     system = LEOSS()
     
@@ -142,7 +185,11 @@ def test_06():
     assert system[0].state.position == Vector(1,2,3)
 
 def test_07():
-
+    '''
+    Test LEOSS methods.
+    simulate method -- move forward multiple time steps given the timeEnd and timeStep in seconds
+    verify that the specific mechanical energy and orbit specific angular momentum is conserved <= 1e-3 
+    '''
     system = LEOSS()
 
     system.addSpacecraft("DIWATA-1")
@@ -167,10 +214,16 @@ def test_07():
     assert abs(xi1-xi0) < 1e-3
 
 def test_08():
-
+    '''
+    verify that a function is a class like LEOSS.
+    '''
     assert type(visual_check()) == LEOSS
 
 def test_09():
+    '''
+    Test LEOSS method and variables.
+    epoch method -- specify the date and time epoch or instant in time as initial value of the system
+    '''
 
     system = LEOSS()
 
@@ -181,6 +234,10 @@ def test_09():
     assert system.datetime0 == datetime.datetime(2023,1,1,0,0,0,0)
 
 def test_10():
+    '''
+    Test LEOSS methods.
+    verify that simulate runs the correct amount of time by using epoch to check the date time after simulation
+    '''
 
     system = LEOSS()
 
@@ -199,6 +256,10 @@ def test_10():
     assert system.datenow() == datetime.datetime(2023,1,1,0,16,40,0)
 
 def test_11():
+    '''
+    Test LEOSS methods.
+    verify that epoch calcualtes the correct Julian Date, Greenwich Mean Sidereal Time at UT and Greenwich Mean Sidereal Time
+    '''
 
     system = LEOSS()
 
@@ -215,7 +276,12 @@ def test_11():
     assert system.gmst%360 == 152.57878881549743
 
 def test_12():
-
+    '''
+    Test LEOSS simulation.
+    Using data from ISS orbit and with the python sgp4 library.
+    Verify that the simulation acquires minimal error compared with the later orbit propagation.
+    Test the locate method of LEOSS -- gives the latitude, longitude and altitude or a Spacecraft object
+    '''
     system = LEOSS()
 
     system.addSpacecraft("DIWATA")
@@ -258,6 +324,11 @@ def test_12():
     assert abs(location[2]- 414.6) <= 1 
 
 def test_13():
+    '''
+    Test Recorder Class Implementation.
+    Recorder class - used as a recorder or observer for a Spacecraft class object
+    verify that the recorder class records every state of the spacecraft during simulation.
+    '''
 
     system = LEOSS()
     system.epoch(2023,9,26,3,11,18,0)
@@ -289,6 +360,11 @@ def test_13():
     assert statedataf.velocity == Vector(4028.7141877464305, -3694.338983991167, 5372.97168210374)
 
 def test_14():
+    '''
+    Test Recorder class methods.
+    addSpacecraft method now can be used to set what the recorder class will record.
+    verify that the recorder records the selected parameters during simulation.
+    '''
 
     system = LEOSS()
     system.epoch(2023,9,26,3,11,18,0)
@@ -328,6 +404,14 @@ def test_14():
     assert netforcef == Vector(364.382790906085, 176.1192072581338, -151.64453269308962) 
 
 def test_15():
+    '''
+    Test Quaternion Class Implementation.
+    Quaternion Addition 
+    __str__ method
+    __repr__ method
+    Quaternion get methods (w, x, y, z)
+    Quaternion Scalar Multiplcation
+    '''
 
     q1 = Quaternion()
     q2 = Quaternion()
@@ -360,7 +444,21 @@ def test_15():
     assert (q4q3 - q4) == q3
 
 def test_16():
-
+    '''
+    Test Matrix and Quaternion Implementations.
+    __str__ and __repr__ methods
+    trace method -- gets the trace of a Matrix
+    PRVtoQuaternion global function -- given a rotation vector and angle give the equivalent Quaternion
+    toMatrix method -- convert a Quaternion to its equivalent Matrix frame rotation
+    toQuaternion method -- convert a Matrix (frame rotation) to its equivalent Quaternion
+    isOrthogonal method -- checks if a Matrix is orthogonal or orthonormal
+    tranpose method -- gets the tranpose of a Matrix
+    Matrix-Vector Multiplication
+    Matrix-Matrix Multiplcation
+    conjugate method -- gets the opposite Quaternion of a Quaternion
+    rotate method -- given a point or a Vector, rotate it using a point rotation matrix equivalent of the Quaternion used
+    RPY_toYPR_quaternion -- given a Vector representing the Roll, Pitch, Yaw orientation, get the equivalent Quaternion for 3-2-1 sequence rotation 
+    '''
     M = Matrix()
     V = Vector(5,3,4)
 
