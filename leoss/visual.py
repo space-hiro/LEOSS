@@ -20,7 +20,7 @@ def visual_check():
     s = LEOSS()
     return s
 
-def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi: int = 300):
+def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi: int = 300, frameRef: str = 'Inertial'):
 
     df = pd.DataFrame.from_dict(recorder.dataDict)
 
@@ -50,8 +50,8 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
     fig.tight_layout()
     ax1 = fig.add_subplot(3,2,2)
     ax2 = fig.add_subplot(3,2,4)
-    ax3 = fig.add_subplot(2,4,1, projection='3d')
-    ax4 = fig.add_subplot(3,2,6)
+    ax3 = fig.add_subplot(3,2,6)
+    ax4 = fig.add_subplot(2,4,1, projection='3d')
     ax5 = fig.add_subplot(2,4,2, projection='3d')
     ax6 = fig.add_subplot(2,4,5, projection='3d')
     ax7 = fig.add_subplot(2,4,6, projection='3d')
@@ -75,16 +75,19 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
     ln2, = ax1.plot([],[], label='q1')
     ln3, = ax1.plot([],[], label='q2')
     ln4, = ax1.plot([],[], label='q3')
+
     ln5, = ax2.plot([],[], label='X')
     ln6, = ax2.plot([],[], label='Y')
     ln7, = ax2.plot([],[], label='Z')
-    ln8, = ax3.plot([],[],[])
-    ln9, = ax3.plot([],[],[])
-    ln10, = ax3.plot([],[],[])
-    ln11, = ax3.plot([],[],[])
-    ln12, = ax4.plot([],[], label='roll')
-    ln13, = ax4.plot([],[], label='pitch')
-    ln14, = ax4.plot([],[], label='yaw')
+
+    ln8, = ax3.plot([],[], label='roll')
+    ln9, = ax3.plot([],[], label='pitch')
+    ln10, = ax3.plot([],[], label='yaw')
+
+    ln11, = ax4.plot([],[],[])
+    ln12, = ax4.plot([],[],[])
+    ln13, = ax4.plot([],[],[])
+    ln14, = ax4.plot([],[],[])
 
     ln15, = ax5.plot([],[],[])
     ln16, = ax5.plot([],[],[])
@@ -94,29 +97,29 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
     ln19, = ax6.plot([],[],[])
     ln20, = ax6.plot([],[],[])
 
-    ln21, = ax6.plot([],[],[])
-    ln22, = ax6.plot([],[],[])
-    ln23, = ax6.plot([],[],[])
+    ln21, = ax7.plot([],[],[])
+    ln22, = ax7.plot([],[],[])
+    ln23, = ax7.plot([],[],[])
     
-
     ax1.grid()
     ax2.grid()
-    ax3.view_init(30,20)
+    ax3.grid()
+
+    ax4.view_init(30,20)
     ax5.view_init(0,0)
     ax6.view_init(0,90)
     ax7.view_init(90,0)
-    ax4.grid()
 
     ax1.title.set_text(f'Quaternion')
     ax2.title.set_text(f'Body Rates (deg/s)')
-    ax4.title.set_text(f'Euler Angles (deg)')
+    ax3.title.set_text(f'Euler Angles (deg)')
 
     plt.style.use("Solarize_Light2")
 
 
     def init():
         ax1.set_ylim(-1.1,1.1)
-        ax4.set_ylim(-190,190)
+        ax3.set_ylim(-190,190)
 
         for axis in ax5.xaxis, ax6.yaxis, ax7.zaxis:
             axis.set_label_position('none')
@@ -140,9 +143,9 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
         ln5.set_data(Times[0: frame], RateX[0: frame])
         ln6.set_data(Times[0: frame], RateY[0: frame])
         ln7.set_data(Times[0: frame], RateZ[0: frame])
-        ln12.set_data(Times[0: frame], Roll[0: frame])
-        ln13.set_data(Times[0: frame], Pitch[0: frame])
-        ln14.set_data(Times[0: frame], Yaw[0: frame])        
+        ln8.set_data(Times[0: frame], Roll[0: frame])
+        ln9.set_data(Times[0: frame], Pitch[0: frame])
+        ln10.set_data(Times[0: frame], Yaw[0: frame])        
 
         xaxis = Vector(1,0,0)
         yaxis = Vector(0,1,0)
@@ -158,9 +161,12 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
         MomentumRotation = Matrix(maxisX, maxisY,maxisZ)
 
         Rotation = Matrices[frame]
-        # Rotation = MomentumRotation.transpose() * Matrices[frame]
-        # maxisLine = MomentumRotation.transpose() * maxis * ratio * 2
-        maxisLine = maxis * ratio * 2
+        maxisLine = maxis.normalize() * ratio * 2
+
+        if frameRef == 'Momentum':
+            Rotation = MomentumRotation.transpose() * Matrices[frame]
+            maxisLine = MomentumRotation.transpose() * maxis.normalize() * ratio * 2
+
 
         xaxis = Rotation * xaxis * xs * 2
         yaxis = Rotation * yaxis * ys * 2
@@ -250,17 +256,17 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
         nzFace[:,1] = nzFaceY
         nzFace[:,2] = nzFaceZ
 
-        ax3.clear()
-        ax3.set_xlim(-ratio,ratio)
-        ax3.set_ylim(-ratio,ratio)
-        ax3.set_zlim(-ratio,ratio)
-        ax3.grid(False)
-        ln8,  = ax3.plot([0,xaxis.x],[0,xaxis.y],[0,xaxis.z],c='red',   linewidth=1.0, zorder=5, linestyle='--')
-        ln9,  = ax3.plot([0,yaxis.x],[0,yaxis.y],[0,yaxis.z],c='green', linewidth=1.0, zorder=5, linestyle='--')
-        ln10, = ax3.plot([0,zaxis.x],[0,zaxis.y],[0,zaxis.z],c='blue',  linewidth=1.0, zorder=5, linestyle='--')
-        ln11, = ax3.plot([0,maxisLine.x],[0,maxisLine.y],[0,maxisLine.z],c='orange',linewidth=1.0, zorder=5, linestyle='-')
-        ax3.add_collection(Poly3DCollection([xFace, yFace, zFace], facecolors='cyan', linewidths=1, edgecolors='k', alpha=.50))
-        ax3.add_collection(Poly3DCollection([nxFace, nyFace, nzFace], facecolors='cyan', linewidths=1, edgecolors='k', alpha=.50))
+        ax4.clear()
+        ax4.set_xlim(-ratio,ratio)
+        ax4.set_ylim(-ratio,ratio)
+        ax4.set_zlim(-ratio,ratio)
+        ax4.grid(False)
+        ln11,  = ax4.plot([0,xaxis.x],[0,xaxis.y],[0,xaxis.z],c='red',   linewidth=1.0, zorder=5, linestyle='--')
+        ln12,  = ax4.plot([0,yaxis.x],[0,yaxis.y],[0,yaxis.z],c='green', linewidth=1.0, zorder=5, linestyle='--')
+        ln13, = ax4.plot([0,zaxis.x],[0,zaxis.y],[0,zaxis.z],c='blue',  linewidth=1.0, zorder=5, linestyle='--')
+        ln14, = ax4.plot([0,maxisLine.x],[0,maxisLine.y],[0,maxisLine.z],c='orange',linewidth=1.0, zorder=5, linestyle='-')
+        ax4.add_collection(Poly3DCollection([xFace, yFace, zFace], facecolors='cyan', linewidths=1, edgecolors='k', alpha=.50))
+        ax4.add_collection(Poly3DCollection([nxFace, nyFace, nzFace], facecolors='cyan', linewidths=1, edgecolors='k', alpha=.50))
 
         scale = 2.0
         ax5.clear()
@@ -296,7 +302,13 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
         ax7.add_collection(Poly3DCollection([xFace, yFace, zFace], facecolors='cyan', linewidths=1, edgecolors='k', alpha=.50))
         ax7.add_collection(Poly3DCollection([nxFace, nyFace, nzFace], facecolors='cyan', linewidths=1, edgecolors='k', alpha=.50))
 
-        ax3.set_title(f'3D View\nFrame = Angular Momentum Vector', fontsize=10, fontname='monospace')
+        frameText = ''
+        if frameRef == 'Inertial':
+            frameText = 'ECIF'
+        if frameRef == 'Momentum':
+            frameText = 'Angular Momentum Vector'
+
+        ax4.set_title(f'3D View\nFrame = {frameText}', fontsize=10, fontname='monospace')
         ax5.set_title(f'Perspective Along X', fontsize=10, fontname='monospace', y=-0.01)
         ax6.set_title(f'Perspective Along Y', fontsize=10, fontname='monospace', y=-0.01)
         ax7.set_title(f'Perspective Along Z', fontsize=10, fontname='monospace', y=-0.01)
@@ -304,7 +316,7 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
         if frame > 0:
             ax1.set_xlim(Times[0]-1, Times[frame]+10)
             ax2.set_xlim(Times[0]-1, Times[frame]+10)
-            ax4.set_xlim(Times[0]-1, Times[frame]+10)
+            ax3.set_xlim(Times[0]-1, Times[frame]+10)
             maxV = 0
             for rate in Bodyrates[0: frame]:
                 lis = abs(np.array([rate.x, rate.y, rate.z]))
@@ -315,12 +327,12 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
             
             ax1.legend(loc='center left', bbox_to_anchor=(1,0.5))
             ax2.legend(loc='center left', bbox_to_anchor=(1,0.5))
-            ax4.legend(loc='center left', bbox_to_anchor=(1,0.5))
+            ax3.legend(loc='center left', bbox_to_anchor=(1,0.5))
 
         return ln1, ln2, ln3, ln4, ln5, ln6, ln7, ln8, ln9, ln10, ln11, ln12, ln13, ln14, \
                 ln15, ln16, ln17, ln18, ln19, ln20, ln21, ln22, ln23,
 
-    print("\nRun Animation (from "+str(Times[0])+" to "+str(Times[-1])+")")
+    print("\nRun Animation (from "+str(Times[0])+" to "+str(Times[-1])+", step="+str(Times[1]-Times[0])+")")
     anim = FuncAnimation(
         fig,
         update,
@@ -337,30 +349,30 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
 
     plt.close()
 
+def groundTrack(recorder: Recorder, dateTime = -1):
 
-def groundTrack(recorder: Recorder, dateTime = 0):
-
+    # get datadict from recorder as dataframe
     df = pd.DataFrame.from_dict(recorder.dataDict)
 
+    # variable for spacecraft and system
     spacecraft = recorder.attachedTo
-    system = spacecraft.system
+    system     = spacecraft.system
 
+    # split data columns from recorder into components
     Latitudes  = [ item[0] for item in df['Location'].values.tolist()[1:] ]
     Longitudes = [ item[1] for item in df['Location'].values.tolist()[1:] ]
     Altitudes  = [ item[2] for item in df['Location'].values.tolist()[1:] ]
     Datetimes  = [ item for item in df['Datetime'] ][1:]
     Times      = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][1:] ]
 
-    fig = plt.figure(figsize=(10, 5))
+    # initialize figure and projection 
+    fig = plt.figure(figsize=(20, 10))
     ax = plt.axes(projection=ccrs.PlateCarree())
 
+    # add the default global map
     ax.stock_img()
-    # ax.coastlines(resolution='110m')
-    
-    # gl = ax.gridlines(draw_labels=True)
-    # gl.top_labels = False
-    # gl.right_labels = False
 
+    # create gridlines
     gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
                   linewidth=1, color='white', alpha = 0.25,
                   linestyle='--')
@@ -379,33 +391,44 @@ def groundTrack(recorder: Recorder, dateTime = 0):
     gl.xformatter = LONGITUDE_FORMATTER
     gl.yformatter = LATITUDE_FORMATTER
 
+    # plot the scatter points for longitude and latitude track
     plot = plt.scatter(Longitudes, Latitudes,
         color='red', s=0.2, zorder=2.5,
         transform=ccrs.PlateCarree(),
         )
-    if dateTime == 0:
+    
+    # if datetime input is -1 then set the datetime as current datetime (plot all from Start to End)
+    if dateTime == -1:
         dateTime = system.datenow()
 
+    # replace datetime input as a datetime object, from int or float
     currentTime = 0
     if isinstance(dateTime, datetime.datetime):
         currentTime = (dateTime - system.datetime0).total_seconds()
     elif isinstance(dateTime, int) or isinstance(dateTime, float):
-        if dateTime > Times[0] and dateTime < Times[-1]:
+        if dateTime > Times[0] and dateTime <= Times[-1]:
             currentTime = dateTime
             dateTime = (system.datetime0+datetime.timedelta(seconds=currentTime))
         else:
             raise ValueError("Datetime input should valid time")
     else:
         raise TypeError("Datetime input should be int, float or datettime type")
-
+    
+    # create a super title with name of spacecraft and datetime
     plt.suptitle(f'{spacecraft.name}\n{dateTime}')
+
+    # set the visibility of the track to only show the track from start time to the input time
     plot.set_alpha([ item<=currentTime for item in Times])
+
+    # show the nightshade transition on the global map
     ax.add_feature(Nightshade(dateTime, alpha=0.3))
 
+    # create a spot on the current location given the time
     index = Times.index(currentTime)
     spot, = ax.plot(Longitudes[index], Latitudes[index] , marker='o', color='white', markersize=12,
             alpha=0.5, transform=ccrs.PlateCarree(), zorder=3.0)
     
+    # create a legend on the current location with details on lat,lon and lat
     lat = str('%.2F'% Latitudes[index]+"°")
     lon = str('%.2F'% Longitudes[index]+"°")
     alt = str('%.2F'% Altitudes[index]+"km")
@@ -417,122 +440,115 @@ def groundTrack(recorder: Recorder, dateTime = 0):
         verticalalignment='center', horizontalalignment='left',
         transform=text_transform, fontsize=8,
         bbox=dict(facecolor='white', alpha=0.5, boxstyle='round'), fontdict={'family':'monospace'})
-    
-    # import matplotlib
-    # print(matplotlib.artist.getp(spot))
-    # spot.set_data([0,0])
-    # label.set(position=[0,0])
-    # label.set(text="AA")
 
     plt.show()
 
-class animatedGroundTrack(object):
+def animateGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4', dpi: int = 300):
 
-    def __init__(self, recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi: int = 300):
+    # get datadict from recorder as dataframe
+    df = pd.DataFrame.from_dict(recorder.dataDict)
 
-        df = pd.DataFrame.from_dict(recorder.dataDict)
+    # variable for spacecraft and system
+    spacecraft = recorder.attachedTo
+    system     = spacecraft.system
 
-        if sample > 0:
-            df = df.iloc[::sample,:]   
+    if sample > 0:
+        df = df.iloc[::sample,:]   
 
-        spacecraft = recorder.attachedTo
-        self.name = spacecraft.name
-        self.system = spacecraft.system
+    df2 = pd.DataFrame.from_dict(recorder.dataDict).iloc[df.index[-1]+1:,:]
+    df = pd.concat([df, df2], ignore_index=True, axis=0)
 
-        self.lat = [ item[0] for item in df['Location'].values.tolist()[1:] ]
-        self.lon = [ item[1] for item in df['Location'].values.tolist()[1:] ]
-        self.alt = [ item[2] for item in df['Location'].values.tolist()[1:] ]
-        self.datetimes = [ item for item in df['Datetime'] ][1:]
-        self.time = [ (item - self.system.datetime0).total_seconds() for item in df['Datetime'][1:] ]
+    # split data columns from recorder into components
+    Latitudes  = [ item[0] for item in df['Location'].values.tolist()[1:] ]
+    Longitudes = [ item[1] for item in df['Location'].values.tolist()[1:] ]
+    Altitudes  = [ item[2] for item in df['Location'].values.tolist()[1:] ]
+    Datetimes  = [ item for item in df['Datetime'] ][1:]
+    Times      = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][1:] ]
 
-        self.fig = plt.figure(figsize=(10, 5))
+    # initialize figure and projection 
+    fig = plt.figure(figsize=(18, 9))
+    ax  = plt.axes(projection=ccrs.PlateCarree())
 
-        self.ax = plt.axes(projection=ccrs.PlateCarree())
+    # globe projection image
+    ax.stock_img()
 
-        self.ax.stock_img()
-        # self.ax.coastlines(resolution='110m')
-        self.NS = self.ax.add_feature(Nightshade(self.system.datetime0, alpha=0.3))
-
-
-        gl = self.ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+    # nighshade 
+    animateGroundTrack.ns = ax.add_feature(Nightshade(system.datetime0, alpha=0.3))
+    
+    # gridlines
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
                     linewidth=1, color='white', alpha = 0.25,
                     linestyle='--')
+    # labels on bottom and left axes
+    gl.top_labels = False
+    gl.right_labels = False
+    # define the label style
+    gl.xlabel_style = {'size': 10, 'color': 'black'}
+    gl.ylabel_style = {'size': 10, 'color': 'black'}
+    # now we define exactly which ones to label and spruce up the labels
+    gl.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
+    gl.ylocator = mticker.FixedLocator([-80, -60, -40, -20, 0, 20, 40, 60, 80])
+    gl.xformatter = LONGITUDE_FORMATTER
 
-        # labels on bottom and left axes
-        gl.top_labels = False
-        gl.right_labels = False
-
-        # define the label style
-        gl.xlabel_style = {'size': 10, 'color': 'black'}
-        gl.ylabel_style = {'size': 10, 'color': 'black'}
-
-        # now we define exactly which ones to label and spruce up the labels
-        gl.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
-        gl.ylocator = mticker.FixedLocator([-80, -60, -40, -20, 0, 20, 40, 60, 80])
-        gl.xformatter = LONGITUDE_FORMATTER
-        gl.yformatter = LATITUDE_FORMATTER
-
-        # gl = self.ax.gridlines(draw_labels=True)
-        # gl.top_labels = False
-        # gl.right_labels = False
-
-        self.plot = plt.scatter(self.lon, self.lat,
-            color='red', s=0.2, zorder=2.5,
-            transform=ccrs.PlateCarree(),
-            )
-        
-        self.spot, = self.ax.plot(self.lon[0], self.lat[0] , marker='o', color='white', markersize=12,
-                alpha=0.5, transform=ccrs.PlateCarree(), zorder=3.0)
-        
-        geodetic_transform = ccrs.PlateCarree()._as_mpl_transform(self.ax)
-        text_transform = offset_copy(geodetic_transform, units='dots', x=+15, y=+0)
-
-        lat = str('%.2F'% self.lat[0]+"°")
-        lon = str('%.2F'% self.lon[0]+"°")
-        alt = str('%.2F'% self.alt[0]+"km")
-        txt = "lat: "+lat+"\nlon: "+lon+"\nlat: "+alt
-        self.text = self.ax.text(self.lon[0], self.lat[0], txt,
-            verticalalignment='center', horizontalalignment='left',
-            transform=text_transform, fontsize=8,
-            bbox=dict(facecolor='white', alpha=0.5, boxstyle='round'), fontdict={'family':'monospace'})
-        
-        length = (len(self.time)//10)
-
-        plt.suptitle(f'{spacecraft.name}\n{self.system.datetime0}')
-
-        print("\nRun Animation (from "+str(self.time[0])+" to "+str(self.time[-1])+")")
-        anim = FuncAnimation(
-            self.fig,
-            self.update,
-            frames = tqdm(np.linspace(self.time[0], self.time[-1], length),  position=0, desc='Animating Ground Track', bar_format='{l_bar}{bar:25}{r_bar}{bar:-25b}'),
-            interval = 1
+    # create scatter plot of the ground track
+    plot = plt.scatter(Longitudes, Latitudes,
+        color='red', s=0.2, zorder=2.5,
+        transform=ccrs.PlateCarree(),
         )
+    
+    # create a spot for the current track position
+    spot, = ax.plot(Longitudes[0], Latitudes[0] , marker='o', color='white', markersize=12,
+            alpha=0.5, transform=ccrs.PlateCarree(), zorder=3.0)
 
-        if saveas == "mp4":
-            anim.save("Groundtrack.mp4", fps=30, dpi=dpi)
-        if saveas == "gif":
-            anim.save("Groundtrack.gif", writer='pillow', fps=30, dpi=dpi)
+    # create legend / label on the current track position    
+    geodetic_transform = ccrs.PlateCarree()._as_mpl_transform(ax)
+    text_transform = offset_copy(geodetic_transform, units='dots', x=+15, y=+0)
 
-        plt.close()
+    lat = str('%.2F'% Latitudes[0]+"°")
+    lon = str('%.2F'% Longitudes[0]+"°")
+    alt = str('%.2F'% Altitudes[0]+"km")
+    txt = "lat: "+lat+"\nlon: "+lon+"\nlat: "+alt
+    text = ax.text(Longitudes[0], Latitudes[0], txt,
+        verticalalignment='center', horizontalalignment='left',
+        transform=text_transform, fontsize=8,
+        bbox=dict(facecolor='white', alpha=0.5, boxstyle='round'), fontdict={'family':'monospace'})
 
-    def update(self, t_current):
+    plt.suptitle(f'{spacecraft.name}\n{system.datetime0}')
 
-        dt_current = self.system.datetime0 + datetime.timedelta(seconds=t_current)
-        self.NS.set_visible(False)
-        self.NS = self.ax.add_feature(Nightshade(dt_current, alpha=0.3))
+    def init():
+        return plot, spot, text,
 
-        plt.suptitle(f'{self.name}\n{dt_current}')
-        self.plot.set_alpha(self.time<=t_current)
+    def update(frame):
+        plt.suptitle(f'{spacecraft.name}\n{Datetimes[frame]}', fontname='monospace')
 
-        index = len([ item for item in self.time if item <= t_current ]) - 1
+        animateGroundTrack.ns.set_visible(False)
+        animateGroundTrack.ns = ax.add_feature(Nightshade(Datetimes[frame], alpha=0.3))
+        current_time = (Datetimes[frame] - system.datetime0).total_seconds()
+        plot.set_alpha( [item <= current_time for item in Times ])
+
+        index = len([ item for item in Times if item <= current_time ]) - 1
    
-        self.spot.set_data([self.lon[index], self.lat[index]])
+        spot.set_data([Longitudes[index], Latitudes[index]])
 
-        lat = str('%.2F'% self.lat[index]+"°")
-        lon = str('%.2F'% self.lon[index]+"°")
-        alt = str('%.2F'% self.alt[index]+"km")
+        lat = str('%.2F'% Latitudes[index]+"°")
+        lon = str('%.2F'% Longitudes[index]+"°")
+        alt = str('%.2F'% Altitudes[index]+"km")
         txt = "lat: "+lat+"\nlon: "+lon+"\nalt: "+alt
-        self.text.set(position=[self.lon[index], self.lat[index]], text=txt)
+        text.set(position=[Longitudes[index], Latitudes[index]], text=txt)       
 
-        return self.plot
+        return plot, spot, text,
 
+    print("\nRun Animation (from "+str(Times[0])+" to "+str(Times[-1])+", step="+str(Times[1]-Times[0])+")")
+    anim = FuncAnimation(
+        fig,
+        update,
+        frames = tqdm(np.arange(0, len(Times), 1), total=len(Times)-1,  position=0, desc='Animating Ground Track', bar_format='{l_bar}{bar:25}{r_bar}{bar:-25b}'),
+        interval = 1
+    )
+
+    if saveas == "mp4":
+        anim.save("Groundtrack.mp4", fps=30, dpi=dpi)
+    if saveas == "gif":
+        anim.save("Groundtrack.gif", writer='pillow', fps=30, dpi=dpi)
+
+    plt.close()
