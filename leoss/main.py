@@ -127,6 +127,9 @@ class Vector():
         else:
             raise ValueError("Unit should be either 'deg' or rad'")
 
+    def __len__(self):
+        return 3
+
 class Matrix():
 
     def __init__(self, x=Vector(1,0,0), y=Vector(0,1,0), z=Vector(0,0,1)):
@@ -386,6 +389,9 @@ class Quaternion():
     def conjugate(self):
         return Quaternion(self.w, -self.x, -self.y, -self.z)
 
+    def __len__(self):
+        return 4
+
 class State():
 
     def __init__(self, mass=0.0, pos=Vector(), vel=Vector(), quat=Quaternion(), omega=Vector()):
@@ -490,6 +496,25 @@ class State():
     def __repr__(self):
         return self.__str__()
 
+class Sensor():
+
+    def __init__(self, name: str):
+        self.name = name
+        self.data = Vector(0,0,0)
+        self.function = None
+    
+    def setMethod(self, function):
+        self.function = function
+
+    def update(self):
+        self.data = self.function(self.attachedTo)
+
+    def __repr__(self):
+        out = str(self.data[0])
+        for i in range(1, len(self.data), 1):
+            out = out + ", " + str(self.data[i])
+        return f'{self.name}({out})'
+
 class Spacecraft():
 
     def __init__(self, name):
@@ -503,6 +528,9 @@ class Spacecraft():
         
         self.location = Vector(0,0,0)
         self.system = None
+
+        self.recorder = None
+        self.sensors = {}
 
     def getmass(self):
         return self.state.mass
@@ -589,6 +617,20 @@ class Spacecraft():
         self.nettorque   = Vector(0,0,0)
         self.netmomentum = Vector(0,0,0)
 
+    def addSensor(self, other):
+        if isinstance(other, Sensor):
+            self.sensors[other.name] = other
+            other.attachedTo = self
+            other.system = self.system
+            self.recorder.addItem(other)
+
+    def getSensors(self):
+        return self.sensors
+    
+    def updateSensors(self):
+        for sensor in self.sensors.values():
+            sensor.update()
+
     def __getitem__(self, item):
         if isinstance(item, str):
             if item == "State": 
@@ -597,6 +639,8 @@ class Spacecraft():
                 return self.netforce
             elif item == "Location": 
                 return self.location
+            elif item in list(self.sensors.keys()):
+                return self.getSensors()[item]
             else:
                 raise TypeError("Operand should be a recorder item")
         else:
@@ -613,6 +657,10 @@ class Recorder():
             self.dataDict[item] = []
         self.update(datetime)
     
+    def addItem(self, item):
+        self.dataDict[item.name] = []
+        self[item.name].append(item)
+
     def update(self, datetime: datetime.datetime):
         Datetime = datetime
         self.dataDict["Datetime"].append(Datetime)
@@ -662,6 +710,7 @@ class LEOSS():
         self.spacecraftObjects.append(spacecraft)
         recorder = Recorder(self.datenow(), spacecraft, recordList)
         self.recorderObjects[name] = recorder
+        spacecraft.recorder = recorder
 
     def listSpacecraft(self):
         names = []
@@ -684,6 +733,7 @@ class LEOSS():
     def advance1timestep(self, deltaTime):
         for spacecraft in self.spacecraftObjects:
             spacecraft.location = self.locate(spacecraft)
+            spacecraft.updateSensors()
             newstate = runggeKutta4(spacecraft.derivative, spacecraft.state, self.time, deltaTime)
             newstate.quaternion = newstate.quaternion.normalize()
             spacecraft.state = newstate

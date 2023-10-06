@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.2.0"
+    assert __version__ == "0.2.1"
 
 def test_01():
     '''
@@ -559,3 +559,54 @@ def test_16():
     assert (Vector(0,1,0) - M_z.transpose() * Vx).magnitude() <= 1e-8
     assert (Vector(0,-1,0) - Q_z.conjugate().rotate(Vx)).magnitude() <= 1e-8
     assert (Vector(0,1,0) - Q_z.rotate(Vx)).magnitude() <= 1e-8
+
+def test_17():
+    
+    system = LEOSS()
+    system.epoch(2023,9,26,3,11,18,0)
+
+    system.addSpacecraft("DIWATA", ["State", "Location", "Netforce"])
+
+    spacecraft = system.getSpacecrafts()
+    recorder   = system.getRecorders()
+
+    spacecraft["DIWATA"].setmass(50)
+    spacecraft["DIWATA"].setsize(Vector(0.1,0.1,0.1))
+    spacecraft["DIWATA"].setposition(1e3*Vector(4395.079058029986, 3631.5889348004957, -3712.575674067216))
+    spacecraft["DIWATA"].setvelocity(1e3*Vector(-5.76886641743168, 2.5823185921356733, -4.310210403510053))
+    spacecraft["DIWATA"].setbodyrate(Vector(5,-4,3))
+    spacecraft["DIWATA"].setorientation(Vector(0,0,0))
+
+    gyroscope = Sensor("gyro")
+    gps       = Sensor("gps")
+
+    def gyrofunction(spacecraft):
+        return spacecraft.state.bodyrate
+    
+    def gpsfunction(spacecraft):
+        return spacecraft['Location']
+    
+    gyroscope.setMethod(gyrofunction)
+    gps.setMethod(gpsfunction)
+
+    spacecraft["DIWATA"].addSensor(gyroscope)
+    spacecraft["DIWATA"].addSensor(gps)
+
+    sensors = spacecraft["DIWATA"].getSensors()
+
+    assert sensors['gyro'] == gyroscope
+    assert sensors['gps'] == gps
+    assert sensors['gyro'].attachedTo == spacecraft["DIWATA"]
+    assert sensors['gyro'].system == system
+    assert spacecraft["DIWATA"]['gyro'] == gyroscope
+    assert spacecraft["DIWATA"]['gps'] == gps
+
+    time = 60
+
+    simulateProgress(system, time)
+
+    assert recorder["DIWATA"]['State'][-1].bodyrate == sensors['gyro'].data
+    assert recorder["DIWATA"]['Location'][-1] == sensors['gps'].data
+    assert recorder['DIWATA']['gps'][-1] == sensors['gps']
+    assert recorder['DIWATA']['gps'][-1].data == sensors['gps'].data
+    assert recorder['DIWATA']['gyro'][0].data == recorder['DIWATA']['State'][0].bodyrate
