@@ -510,10 +510,7 @@ class Sensor():
         self.data = self.function(self.attachedTo)
 
     def __repr__(self):
-        out = str(self.data[0])
-        for i in range(1, len(self.data), 1):
-            out = out + ", " + str(self.data[i])
-        return f'{self.name}({out})'
+        return str(self.data)
 
 class Spacecraft():
 
@@ -640,7 +637,7 @@ class Spacecraft():
             elif item == "Location": 
                 return self.location
             elif item in list(self.sensors.keys()):
-                return self.getSensors()[item]
+                return self.getSensors()[item].data
             else:
                 raise TypeError("Operand should be a recorder item")
         else:
@@ -659,7 +656,7 @@ class Recorder():
     
     def addItem(self, item):
         self.dataDict[item.name] = []
-        self[item.name].append(item)
+        self[item.name].append(item.data)
 
     def update(self, datetime: datetime.datetime):
         Datetime = datetime
@@ -732,16 +729,17 @@ class LEOSS():
     
     def advance1timestep(self, deltaTime):
         for spacecraft in self.spacecraftObjects:
-            spacecraft.location = self.locate(spacecraft)
-            spacecraft.updateSensors()
             newstate = runggeKutta4(spacecraft.derivative, spacecraft.state, self.time, deltaTime)
             newstate.quaternion = newstate.quaternion.normalize()
             spacecraft.state = newstate
+            spacecraft.location = self.locate(spacecraft, self.time+deltaTime)
+            spacecraft.updateSensors()
             self.recorderObjects[spacecraft.name].update(self.datenow()+datetime.timedelta(seconds=deltaTime))
         self.time = self.time + deltaTime
 
     def initRecorders(self):
         for spacecraft in self.spacecraftObjects:
+            spacecraft.updateSensors()
             self.recorderObjects[spacecraft.name].update(self.datenow())
     
     def __getitem__(self, item):
@@ -753,7 +751,7 @@ class LEOSS():
         else:
             raise TypeError("Operand should be a positive int")
         
-    def locate(self, spacecraft: Spacecraft):
+    def locate(self, spacecraft: Spacecraft, time):
         
         position = spacecraft.getposition()
 
@@ -786,7 +784,7 @@ class LEOSS():
         altitude = h_ellp/1e3
         latitude = gd_theta*R2D
 
-        gmst_ = self.gmst + self.time*(360.98564724)/(24*3600) 
+        gmst_ = self.gmst + time*(360.98564724)/(24*3600) 
         longitude = longitude - gmst_
         if longitude < 0:
             longitude = (((longitude/360) - int(longitude/360)) * 360) + 360    
@@ -812,7 +810,7 @@ def runggeKutta4(derivative, state, time, deltaTime):
 def simulate(system: LEOSS, timeEnd, timeStep=1/32):
     
     for spacecraft in system.spacecraftObjects:
-        spacecraft.location = system.locate(spacecraft)
+        spacecraft.location = system.locate(spacecraft, system.time)
         spacecraft.derivative(spacecraft.state, system.time)
 
     system.initRecorders()
@@ -836,7 +834,7 @@ def simulateProgress0(system: LEOSS, timeEnd, timeStep=1/32):
 def simulateProgress(system: LEOSS, timeEnd, timeStep=1/32):
     
     for spacecraft in system.spacecraftObjects:
-        spacecraft.location = system.locate(spacecraft)
+        spacecraft.location = system.locate(spacecraft, system.time)
         spacecraft.derivative(spacecraft.state, system.time)
 
     system.initRecorders()
