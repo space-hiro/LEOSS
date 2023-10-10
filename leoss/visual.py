@@ -3,6 +3,7 @@ from .main import *
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.transforms import offset_copy
+from matplotlib import gridspec
 
 import matplotlib.ticker as mticker
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -543,12 +544,159 @@ def animateGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4',
         fig,
         update,
         frames = tqdm(np.arange(0, len(Times), 1), total=len(Times)-1,  position=0, desc='Animating Ground Track', bar_format='{l_bar}{bar:25}{r_bar}{bar:-25b}'),
-        interval = 1
+        interval = 30
     )
 
     if saveas == "mp4":
         anim.save("Groundtrack.mp4", fps=30, dpi=dpi)
     if saveas == "gif":
         anim.save("Groundtrack.gif", writer='pillow', fps=30, dpi=dpi)
+
+    plt.close()
+
+def sensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas: str = 'mp4', dpi: int = 300):
+
+    # get datadict from recorder as dataframe
+    df = pd.DataFrame.from_dict(recorder.dataDict)
+
+    # variable for spacecraft and system
+    spacecraft = recorder.attachedTo
+    system     = spacecraft.system
+
+    if sample > 0:
+        df = df.iloc[::sample,:]   
+
+    df2 = pd.DataFrame.from_dict(recorder.dataDict).iloc[df.index[-1]+1:,:]
+    df = pd.concat([df, df2], ignore_index=True, axis=0)
+
+    # split data columns from recorder into components
+    SensorData = [ item for item in df[sensor].values.tolist()[1:] ]
+    Latitudes  = [ item[0] for item in df['Location'].values.tolist()[1:] ]
+    Longitudes = [ item[1] for item in df['Location'].values.tolist()[1:] ]
+    Altitudes  = [ item[2] for item in df['Location'].values.tolist()[1:] ]
+    Datetimes  = [ item for item in df['Datetime'] ][1:]
+    Times      = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][1:] ]
+
+    SensorX = [ item.x for item in SensorData ]
+    SensorY = [ item.y for item in SensorData ]
+    SensorZ = [ item.z for item in SensorData ]
+
+    # initialize figure and projection 
+    fig = plt.figure(figsize=(12, 9))
+    fig.tight_layout()
+    gs = gridspec.GridSpec(2,1, height_ratios=[2, 1])
+    ax1 = plt.subplot(gs[0], projection=ccrs.PlateCarree())
+    ax2 = plt.subplot(gs[1])
+    # ax1 = fig.add_subplot(3,1,1, height_ratio = 2, projection=ccrs.PlateCarree())
+    # ax2 = fig.add_subplot(3,1,3)
+
+    # globe projection image
+    ax1.stock_img()
+
+    # nighshade 
+    animateGroundTrack.ns = ax1.add_feature(Nightshade(system.datetime0, alpha=0.3))
+    
+    # gridlines
+    gl = ax1.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+                    linewidth=1, color='white', alpha = 0.25,
+                    linestyle='--')
+    # labels on bottom and left axes
+    gl.top_labels = False
+    gl.right_labels = False
+    # define the label style
+    gl.xlabel_style = {'size': 10, 'color': 'black'}
+    gl.ylabel_style = {'size': 10, 'color': 'black'}
+    # now we define exactly which ones to label and spruce up the labels
+    gl.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
+    gl.ylocator = mticker.FixedLocator([-80, -60, -40, -20, 0, 20, 40, 60, 80])
+    gl.xformatter = LONGITUDE_FORMATTER
+
+    # create scatter plot of the ground track
+    plot = ax1.scatter(Longitudes, Latitudes,
+        color='red', s=0.2, zorder=2.5,
+        transform=ccrs.PlateCarree(),
+        )
+    
+    ln1, = ax2.plot([],[])
+    ln2, = ax2.plot([],[])
+    ln3, = ax2.plot([],[])
+
+    # create a spot for the current track position
+    spot, = ax1.plot(Longitudes[0], Latitudes[0] , marker='o', color='white', markersize=12,
+            alpha=0.5, transform=ccrs.PlateCarree(), zorder=3.0)
+
+    # create legend / label on the current track position    
+    geodetic_transform = ccrs.PlateCarree()._as_mpl_transform(ax1)
+    text_transform = offset_copy(geodetic_transform, units='dots', x=+15, y=+0)
+
+    lat = str('%.2F'% Latitudes[0]+"°")
+    lon = str('%.2F'% Longitudes[0]+"°")
+    alt = str('%.2F'% Altitudes[0]+"km")
+    txt = "lat: "+lat+"\nlon: "+lon+"\nlat: "+alt
+    text = ax1.text(Longitudes[0], Latitudes[0], txt,
+        verticalalignment='center', horizontalalignment='left',
+        transform=text_transform, fontsize=8,
+        bbox=dict(facecolor='white', alpha=0.5, boxstyle='round'), fontdict={'family':'monospace'})
+
+    plt.suptitle(f'{spacecraft.name}\n{system.datetime0}')
+
+    ax2.title.set_text(f'{sensor} output')
+    ax2.grid()
+
+    plt.style.use("Solarize_Light2")
+
+    def init():
+
+        plt.subplots_adjust(wspace=0, right=0, left=0)   
+
+        return plot, spot, text, ln1, ln2, ln3,
+
+    def update(frame):
+        plt.suptitle(f'{spacecraft.name}\n{Datetimes[frame]}', fontname='monospace')
+
+        animateGroundTrack.ns.set_visible(False)
+        animateGroundTrack.ns = ax1.add_feature(Nightshade(Datetimes[frame], alpha=0.3))
+        current_time = (Datetimes[frame] - system.datetime0).total_seconds()
+        plot.set_alpha( [item <= current_time for item in Times ])
+
+        ln1.set_data(Times[0: frame], SensorX[0: frame])
+        ln2.set_data(Times[0: frame], SensorY[0: frame])
+        ln3.set_data(Times[0: frame], SensorZ[0: frame])
+
+        index = len([ item for item in Times if item <= current_time ]) - 1
+   
+        spot.set_data([Longitudes[index], Latitudes[index]])
+
+        lat = str('%.2F'% Latitudes[index]+"°")
+        lon = str('%.2F'% Longitudes[index]+"°")
+        alt = str('%.2F'% Altitudes[index]+"km")
+        txt = "lat: "+lat+"\nlon: "+lon+"\nalt: "+alt
+        text.set(position=[Longitudes[index], Latitudes[index]], text=txt)   
+
+        if frame > 0:
+            maxV = 0
+            for rate in SensorData[0: frame]:
+                lis = abs(np.array([rate.x, rate.y, rate.z]))
+                if max(lis) > maxV:
+                    maxV = max(lis)
+
+            ax2.set_ylim(-1.5*maxV,1.5*maxV)
+
+        ax2.set_xlim(Times[0]-1, Times[frame]+10)    
+
+        return plot, spot, text, ln1, ln2, ln3
+
+    print("\nRun Animation (from "+str(Times[0])+" to "+str(Times[-1])+", step="+str(Times[1]-Times[0])+")")
+    anim = FuncAnimation(
+        fig,
+        update,
+        frames = tqdm(np.arange(0, len(Times), 1), total=len(Times)-1,  position=0, desc='Animating Ground Track', bar_format='{l_bar}{bar:25}{r_bar}{bar:-25b}'),
+        interval = 30
+    )
+
+    if saveas == "mp4":
+        anim.save("Sensortrack.mp4", fps=30, dpi=dpi)
+    if saveas == "gif":
+        anim.save("Sensortrack.gif", writer='pillow', fps=30, dpi=dpi)
 
     plt.close()
