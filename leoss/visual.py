@@ -694,8 +694,8 @@ def sensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas: str = 
                 lis = abs(np.array([rate.x, rate.y, rate.z]))
                 if max(lis) > maxV:
                     maxV = max(lis)
-
-            ax2.set_ylim(-1.5*maxV,1.5*maxV)
+            if maxV != 0:
+                ax2.set_ylim(-1.5*maxV,1.5*maxV)
 
         ax2.set_xlim(Times[0]-1, Times[frame]+10)    
 

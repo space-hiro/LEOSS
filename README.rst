@@ -34,7 +34,8 @@ Please make sure to update tests as appropiate.
 
 Authors and Acknowledgement
 =====
-Author: ``kennethjohnibarra@gmail.com``
+
+Main Author: ``kennethjohnibarra@gmail.com``
 
 License
 =====

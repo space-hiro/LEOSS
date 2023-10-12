@@ -635,6 +635,10 @@ class Spacecraft():
                 return self.state
             elif item == "Netforce": 
                 return self.netforce
+            elif item == "Nettorque": 
+                return self.nettorque
+            elif item == "Netmoment": 
+                return self.netmomentum
             elif item == "Location": 
                 return self.location
             elif item in list(self.sensors.keys()):
