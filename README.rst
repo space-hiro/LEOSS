@@ -34,8 +34,7 @@ Please make sure to update tests as appropiate.
 
 Authors and Acknowledgement
 =====
-Author: ``Kenneth John Ibarra``
-E-mail: ``kennethjohnibarra@gmail.com``
+Author: ``kennethjohnibarra@gmail.com``
 
 License
 =====
