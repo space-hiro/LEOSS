@@ -29,4 +29,4 @@ Please make sure to update tests as appropiate/
 License
 =====
 
-`MIT <https://choosealicense.com/licenses/mit/>`
+`MIT <https://choosealicense.com/licenses/mit/>`__
