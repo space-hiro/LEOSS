@@ -1,7 +1,7 @@
 LEOSS
 =====
 
-''LEOS'' is shorthand for Low Earth Orbit Spacecraft Simulator. 
+``LEOSS`` is shorthand for Low Earth Orbit Spacecraft Simulator. 
 
 
 
@@ -29,4 +29,4 @@ Please make sure to update tests as appropiate/
 License
 =====
 
-'MIT <https://choosealicense.com/licenses/mit/>
+`MIT <https://choosealicense.com/licenses/mit/>
