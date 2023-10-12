@@ -3,7 +3,7 @@ LEOSS
 
 ``LEOSS`` is shorthand for Low Earth Orbit Spacecraft Simulator. 
 
-
+This project README is still in construction...
 
 Installation
 ============
@@ -24,10 +24,15 @@ Animated Groundtracks
 
 |Groundtrack|
 
-Animated Attitude track
------------------------
+Animated Attitude Tracking
+--------------------------
 
 |Attitudetrack|
+
+Animated Sensor Tracking
+------------------------
+
+|Sensortrack|
 
 Support
 =======
@@ -54,3 +59,4 @@ License
 
 .. |Groundtrack| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Groundtrack.gif
 .. |Attitudetrack| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Attitudetrack.gif
+.. |Sensortrack| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Sensortrack.gif
