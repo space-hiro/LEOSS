@@ -478,7 +478,7 @@ def animateGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4',
     Times      = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][1:] ]
 
     # initialize figure and projection 
-    fig = plt.figure(figsize=(18, 9))
+    fig = plt.figure(figsize=(12, 6))
     ax  = plt.axes(projection=ccrs.PlateCarree())
 
     # globe projection image
@@ -561,7 +561,7 @@ def animateGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4',
     if saveas == "mp4":
         anim.save("Groundtrack.mp4", fps=30, dpi=dpi)
     if saveas == "gif":
-        anim.save("Groundtrack.gif", writer='pillow', fps=30, dpi=dpi)
+        anim.save("Groundtrack.gif", writer='pillow', fps=30)
 
     plt.close()
 

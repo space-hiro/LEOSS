@@ -44,4 +44,4 @@ License
 
 `MIT <https://choosealicense.com/licenses/mit/>`__
 
-.. |Groundtrack| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Groundtrack.mp4
+.. |Groundtrack| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Groundtrack.gif
