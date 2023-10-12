@@ -3,6 +3,7 @@ import math
 import time as clock
 
 from tqdm import tqdm
+import pyIGRF as IGRF
 
 R2D = 180/math.pi
 D2R = math.pi/180

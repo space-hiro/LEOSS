@@ -35,18 +35,19 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
     ratio = max(spacecraft.size)/min(spacecraft.size)
 
     if sample > 0:
-        df = df.iloc[::sample,:]   
+        df1 = df.iloc[::sample,:]   
 
-    df2 = pd.DataFrame.from_dict(recorder.dataDict).iloc[df.index[-1]+1:,:]
-    df = pd.concat([df, df2], ignore_index=True, axis=0)
+    df2 = df.iloc[df.index[-1]:,:]
+    df1 = pd.concat([df1, df2], ignore_index=True, axis=0)
 
-    States      = [ item for item in df['State'].values.tolist()[1:] ]
-    Positions   = [ item.position for item in df['State'].values.tolist()[1:] ]
-    Quaternions = [ item.quaternion for item in df['State'].values.tolist()[1:] ]
-    Bodyrates   = [ item.bodyrate*R2D for item in df['State'].values.tolist()[1:] ]
-    Datetimes   = [ item for item in df['Datetime'] ][1:]
-    Times       = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][1:] ]
+    States      = [ item for item in df1['State'].values.tolist()[1:] ]
+    Positions   = [ item.position for item in df1['State'].values.tolist()[1:] ]
+    Quaternions = [ item.quaternion for item in df1['State'].values.tolist()[1:] ]
+    Bodyrates   = [ item.bodyrate*R2D for item in df1['State'].values.tolist()[1:] ]
+    Datetimes   = [ item for item in df1['Datetime'] ][1:]
+    Times       = [ (item - system.datetime0).total_seconds() for item in df1['Datetime'][1:] ]
 
+    # plt.style.use("seaborn-v0_8")
     fig = plt.figure(figsize=(18,9))
     fig.tight_layout()
     ax1 = fig.add_subplot(3,2,2)
@@ -102,9 +103,9 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
     ln22, = ax7.plot([],[],[])
     ln23, = ax7.plot([],[],[])
     
-    ax1.grid()
-    ax2.grid()
-    ax3.grid()
+    ax1.grid(visible=True)
+    ax2.grid(visible=True)
+    ax3.grid(visible=True)
 
     ax4.view_init(30,20)
     ax5.view_init(0,0)
@@ -114,9 +115,6 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
     ax1.title.set_text(f'Quaternion')
     ax2.title.set_text(f'Body Rates (deg/s)')
     ax3.title.set_text(f'Euler Angles (deg)')
-
-    plt.style.use("Solarize_Light2")
-
 
     def init():
         ax1.set_ylim(-1.1,1.1)
@@ -129,7 +127,7 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
         ax6.zaxis.set_label_position('upper')
         ax6.zaxis.set_ticks_position('upper')    
 
-        plt.subplots_adjust(wspace=0, hspace=0.3, left=0)   
+        plt.subplots_adjust(wspace=0.1, hspace=0.3, left=None, right=None)   
 
         return ln1, ln2, ln3, ln4, ln5, ln6, ln7, ln8, ln9, ln10, ln11, ln12, ln13, ln14, \
                 ln15, ln16, ln17, ln18, ln19, ln20, ln21, ln22, ln23,
@@ -146,7 +144,23 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
         ln7.set_data(Times[0: frame], RateZ[0: frame])
         ln8.set_data(Times[0: frame], Roll[0: frame])
         ln9.set_data(Times[0: frame], Pitch[0: frame])
-        ln10.set_data(Times[0: frame], Yaw[0: frame])        
+        ln10.set_data(Times[0: frame], Yaw[0: frame])    
+
+        ln1.set_label("q0 = "+str('%+.4F' % QuatW[frame]))
+        ln2.set_label("q1 = "+str('%+.4F' % QuatX[frame]))
+        ln3.set_label('q2 = '+str('%+.4F' % QuatY[frame]))
+        ln4.set_label('q3 = '+str('%+.4F' % QuatZ[frame]))
+        ax1.legend(loc='lower left', prop={'family':'monospace'}, ncol=4)    
+
+        ln5.set_label("X = "+str('%+.4F' % RateX[frame]))
+        ln6.set_label("Y = "+str('%+.4F' % RateY[frame]))
+        ln7.set_label('Z = '+str('%+.4F' % RateZ[frame]))
+        ax2.legend(loc='lower left', prop={'family':'monospace'}, ncol=3)   
+
+        ln8.set_label("Roll = "+str('%+.4F' % Roll[frame]))
+        ln9.set_label("Pith = "+str('%+.4F' % Pitch[frame]))
+        ln10.set_label('Yaw = '+str('%+.4F' % Yaw[frame]))
+        ax3.legend(loc='lower left', prop={'family':'monospace'}, ncol=3)  
 
         xaxis = Vector(1,0,0)
         yaxis = Vector(0,1,0)
@@ -325,10 +339,6 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
                     maxV = max(lis)
 
             ax2.set_ylim(-1.5*maxV,1.5*maxV)
-            
-            ax1.legend(loc='center left', bbox_to_anchor=(1,0.5))
-            ax2.legend(loc='center left', bbox_to_anchor=(1,0.5))
-            ax3.legend(loc='center left', bbox_to_anchor=(1,0.5))
 
         return ln1, ln2, ln3, ln4, ln5, ln6, ln7, ln8, ln9, ln10, ln11, ln12, ln13, ln14, \
                 ln15, ln16, ln17, ln18, ln19, ln20, ln21, ln22, ln23,
@@ -349,6 +359,7 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
         anim.save("Attitudetrack.gif", writer='pillow', fps=30, dpi=dpi)
 
     plt.close()
+
 
 def groundTrack(recorder: Recorder, dateTime = -1):
 
@@ -564,24 +575,25 @@ def sensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas: str = 
     system     = spacecraft.system
 
     if sample > 0:
-        df = df.iloc[::sample,:]   
+        df1 = df.iloc[::sample,:]   
 
-    df2 = pd.DataFrame.from_dict(recorder.dataDict).iloc[df.index[-1]+1:,:]
-    df = pd.concat([df, df2], ignore_index=True, axis=0)
+    df2 = df.iloc[df.index[-1]:,:]
+    df1 = pd.concat([df1, df2], ignore_index=True, axis=0)
 
     # split data columns from recorder into components
-    SensorData = [ item for item in df[sensor].values.tolist()[1:] ]
-    Latitudes  = [ item[0] for item in df['Location'].values.tolist()[1:] ]
-    Longitudes = [ item[1] for item in df['Location'].values.tolist()[1:] ]
-    Altitudes  = [ item[2] for item in df['Location'].values.tolist()[1:] ]
-    Datetimes  = [ item for item in df['Datetime'] ][1:]
-    Times      = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][1:] ]
+    SensorData = [ item for item in df1[sensor].values.tolist()[1:] ]
+    Latitudes  = [ item[0] for item in df1['Location'].values.tolist()[1:] ]
+    Longitudes = [ item[1] for item in df1['Location'].values.tolist()[1:] ]
+    Altitudes  = [ item[2] for item in df1['Location'].values.tolist()[1:] ]
+    Datetimes  = [ item for item in df1['Datetime'] ][1:]
+    Times      = [ (item - system.datetime0).total_seconds() for item in df1['Datetime'][1:] ]
 
     SensorX = [ item.x for item in SensorData ]
     SensorY = [ item.y for item in SensorData ]
     SensorZ = [ item.z for item in SensorData ]
 
     # initialize figure and projection 
+    # plt.style.use("seaborn-v0_8")
     fig = plt.figure(figsize=(12, 9))
     fig.tight_layout()
     gs = gridspec.GridSpec(2,1, height_ratios=[2, 1])
@@ -617,9 +629,9 @@ def sensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas: str = 
         transform=ccrs.PlateCarree(),
         )
     
-    ln1, = ax2.plot([],[])
-    ln2, = ax2.plot([],[])
-    ln3, = ax2.plot([],[])
+    ln1, = ax2.plot([],[], label="X")
+    ln2, = ax2.plot([],[], label="Y")
+    ln3, = ax2.plot([],[], label="Z")
 
     # create a spot for the current track position
     spot, = ax1.plot(Longitudes[0], Latitudes[0] , marker='o', color='white', markersize=12,
@@ -641,9 +653,7 @@ def sensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas: str = 
     plt.suptitle(f'{spacecraft.name}\n{system.datetime0}')
 
     ax2.title.set_text(f'{sensor} output')
-    ax2.grid()
-
-    plt.style.use("Solarize_Light2")
+    ax2.grid(visible=True)
 
     def init():
 
@@ -662,6 +672,11 @@ def sensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas: str = 
         ln1.set_data(Times[0: frame], SensorX[0: frame])
         ln2.set_data(Times[0: frame], SensorY[0: frame])
         ln3.set_data(Times[0: frame], SensorZ[0: frame])
+
+        ln1.set_label("X = "+str('%+.3E' % SensorX[frame]))
+        ln2.set_label("Y = "+str('%+.3E' % SensorY[frame]))
+        ln3.set_label('Z = '+str('%+.3E' % SensorZ[frame]))
+        ax2.legend(loc='lower left', prop={'family':'monospace'}, ncol=3)
 
         index = len([ item for item in Times if item <= current_time ]) - 1
    
@@ -690,7 +705,7 @@ def sensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas: str = 
     anim = FuncAnimation(
         fig,
         update,
-        frames = tqdm(np.arange(0, len(Times), 1), total=len(Times)-1,  position=0, desc='Animating Ground Track', bar_format='{l_bar}{bar:25}{r_bar}{bar:-25b}'),
+        frames = tqdm(np.arange(0, len(Times), 1), total=len(Times)-1,  position=0, desc='Animating Sensor Track', bar_format='{l_bar}{bar:25}{r_bar}{bar:-25b}'),
         interval = 30
     )
 
