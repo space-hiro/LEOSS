@@ -911,19 +911,6 @@ def simulate(system: LEOSS, timeEnd, timeStep=1/32):
     while system.time < timeEnd:
         system.advance1timestep(timeStep)
 
-def simulateProgress0(system: LEOSS, timeEnd, timeStep=1/32):
-    
-    for spacecraft in system.spacecraftObjects:
-        spacecraft.location = system.locate(spacecraft)
-        spacecraft.derivative(spacecraft.state, system.time)
-
-    system.initRecorders()
-    
-    with tqdm(total = timeEnd) as pbar:
-        while system.time < timeEnd:
-            system.advance1timestep(timeStep)
-            pbar.update(timeStep)
-
 def simulateProgress(system: LEOSS, timeEnd, timeStep=1/32):
 
     print("\nRun Simulation (from "+str(system.time)+" to "+str(timeEnd)+", step="+str(timeStep)+")")

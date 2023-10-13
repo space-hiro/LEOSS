@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.2.5"
+    assert __version__ == "0.2.6"
 
 def test_01():
     '''
@@ -352,12 +352,12 @@ def test_13():
     datetimef  = recorder["DIWATA"]["Datetime"][-1]
     statedataf = recorder["DIWATA"]["State"][-1]
     
-    assert str(datetime0) == '2023-09-26 03:11:18'
-    assert statedata0.position == 1e3*Vector(4395.079058029986, 3631.5889348004957, -3712.575674067216)
-    assert statedata0.velocity == 1e3*Vector(-5.76886641743168, 2.5823185921356733, -4.310210403510053)
-    assert str(datetimef) == '2023-09-26 03:53:17'
-    assert statedataf.position == Vector(-5725303.624707216, -2767243.571487566, 2382689.3430830454)
-    assert statedataf.velocity == Vector(4028.7141877464305, -3694.338983991167, 5372.97168210374)
+    assert str(datetime0) == '2023-09-26 03:11:18.031250'
+    assert statedata0.position == Vector(4394898.778238248, 3631669.6300121024, -3712710.365847866)
+    assert statedata0.velocity ==  Vector(-5769.040252603422, 2582.1749501580102, -4310.063557192801)
+    assert str(datetimef) == '2023-09-26 03:53:16.968750'
+    assert statedataf.position == Vector(-5725429.518467132, -2767128.121674426, 2382521.4362371108)
+    assert statedataf.velocity == Vector(4028.4864460075523, -3694.449056195037, 5373.066456593324)
 
 def test_14():
     '''
@@ -392,15 +392,15 @@ def test_14():
     locationf = recorder["DIWATA"]["Location"][-1]
     netforcef  = recorder["DIWATA"]["Netforce"][-1]
     
-    assert str(datetime0) == '2023-09-26 03:11:18'
-    assert statedata0.position == 1e3*Vector(4395.079058029986, 3631.5889348004957, -3712.575674067216)
-    assert statedata0.velocity == 1e3*Vector(-5.76886641743168, 2.5823185921356733, -4.310210403510053)
-    assert location0 == Vector(-33.23626522433354, -12.934352351857115, 431.8074766006423)
-    assert netforce0 == Vector(-278.14198636900056, -229.8246167280209, 234.9498516172633)
-    assert str(datetimef) == '2023-09-26 03:53:17'
-    assert statedataf.position == Vector(-5725303.624707216, -2767243.571487566, 2382689.3430830454)
-    assert statedataf.velocity == Vector(4028.7141877464305, -3694.338983991167, 5372.97168210374)
-    assert locationf == Vector(20.659766928143334, 142.77079375755216, 415.23150512780995)
+    assert str(datetime0) == '2023-09-26 03:11:18.031250'
+    assert statedata0.position == Vector(4394898.778238248, 3631669.6300121024, -3712710.365847866)
+    assert statedata0.velocity == Vector(-5769.040252603422, 2582.1749501580102, -4310.063557192801)
+    assert location0 == Vector(-33.23762159989866, -12.932703716557796, 431.80805538907555)
+    assert netforce0 == Vector(-278.11913958517897, -229.83480648340282, 234.9668751720585)
+    assert str(datetimef) == '2023-09-26 03:53:16.968750'
+    assert statedataf.position == Vector(-5725429.518467132, -2767128.121674426, 2382521.4362371108)
+    assert statedataf.velocity == Vector(4028.4864460075523, -3694.449056195037, 5373.066456593324)
+    assert locationf == Vector(20.658246279489802, 142.76949414474478, 415.2313183538606)
     assert netforcef == Vector(364.382790906085, 176.1192072581338, -151.64453269308962) 
 
 def test_15():
@@ -580,10 +580,10 @@ def test_17():
     gyroscope = Sensor("gyro")
     gps       = Sensor("gps")
 
-    def gyrofunction(spacecraft):
+    def gyrofunction(spacecraft, args):
         return spacecraft.state.bodyrate
     
-    def gpsfunction(spacecraft):
+    def gpsfunction(spacecraft, args):
         return spacecraft['Location']
     
     gyroscope.setMethod(gyrofunction)
