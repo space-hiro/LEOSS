@@ -36,16 +36,18 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
 
     if sample > 0:
         df1 = df.iloc[::sample,:]   
+        df2 = df.iloc[df.index[-1]:,:]
+        df1 = pd.concat([df1, df2], ignore_index=True, axis=0)
+    
+    elif sample == 0:
+        df1 = df
 
-    df2 = df.iloc[df.index[-1]:,:]
-    df1 = pd.concat([df1, df2], ignore_index=True, axis=0)
-
-    States      = [ item for item in df1['State'].values.tolist()[1:] ]
-    Positions   = [ item.position for item in df1['State'].values.tolist()[1:] ]
-    Quaternions = [ item.quaternion for item in df1['State'].values.tolist()[1:] ]
-    Bodyrates   = [ item.bodyrate*R2D for item in df1['State'].values.tolist()[1:] ]
-    Datetimes   = [ item for item in df1['Datetime'] ][1:]
-    Times       = [ (item - system.datetime0).total_seconds() for item in df1['Datetime'][1:] ]
+    States      = [ item for item in df1['State'].values.tolist()[:] ]
+    Positions   = [ item.position for item in df1['State'].values.tolist()[:] ]
+    Quaternions = [ item.quaternion for item in df1['State'].values.tolist()[:] ]
+    Bodyrates   = [ item.bodyrate*R2D for item in df1['State'].values.tolist()[:] ]
+    Datetimes   = [ item for item in df1['Datetime'] ][:]
+    Times       = [ (item - system.datetime0).total_seconds() for item in df1['Datetime'][:] ]
 
     # plt.style.use("seaborn-v0_8")
     fig = plt.figure(figsize=(18,9))
@@ -371,11 +373,11 @@ def groundTrack(recorder: Recorder, dateTime = -1):
     system     = spacecraft.system
 
     # split data columns from recorder into components
-    Latitudes  = [ item[0] for item in df['Location'].values.tolist()[1:] ]
-    Longitudes = [ item[1] for item in df['Location'].values.tolist()[1:] ]
-    Altitudes  = [ item[2] for item in df['Location'].values.tolist()[1:] ]
-    Datetimes  = [ item for item in df['Datetime'] ][1:]
-    Times      = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][1:] ]
+    Latitudes  = [ item[0] for item in df['Location'].values.tolist()[:] ]
+    Longitudes = [ item[1] for item in df['Location'].values.tolist()[:] ]
+    Altitudes  = [ item[2] for item in df['Location'].values.tolist()[:] ]
+    Datetimes  = [ item for item in df['Datetime'] ][:]
+    Times      = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][:] ]
 
     # initialize figure and projection 
     fig = plt.figure(figsize=(20, 10))
@@ -465,17 +467,19 @@ def animateGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4',
     system     = spacecraft.system
 
     if sample > 0:
-        df = df.iloc[::sample,:]   
-
-    df2 = pd.DataFrame.from_dict(recorder.dataDict).iloc[df.index[-1]+1:,:]
-    df = pd.concat([df, df2], ignore_index=True, axis=0)
+        df1 = df.iloc[::sample,:]   
+        df2 = df.iloc[df.index[-1]:,:]
+        df1 = pd.concat([df1, df2], ignore_index=True, axis=0)
+        
+    elif sample == 0:
+        df1 = df
 
     # split data columns from recorder into components
-    Latitudes  = [ item[0] for item in df['Location'].values.tolist()[1:] ]
-    Longitudes = [ item[1] for item in df['Location'].values.tolist()[1:] ]
-    Altitudes  = [ item[2] for item in df['Location'].values.tolist()[1:] ]
-    Datetimes  = [ item for item in df['Datetime'] ][1:]
-    Times      = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][1:] ]
+    Latitudes  = [ item[0] for item in df1['Location'].values.tolist()[:] ]
+    Longitudes = [ item[1] for item in df1['Location'].values.tolist()[:] ]
+    Altitudes  = [ item[2] for item in df1['Location'].values.tolist()[:] ]
+    Datetimes  = [ item for item in df1['Datetime'] ][1:]
+    Times      = [ (item - system.datetime0).total_seconds() for item in df1['Datetime'][:] ]
 
     # initialize figure and projection 
     fig = plt.figure(figsize=(12, 6))
@@ -576,17 +580,19 @@ def sensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas: str = 
 
     if sample > 0:
         df1 = df.iloc[::sample,:]   
+        df2 = df.iloc[df.index[-1]:,:]
+        df1 = pd.concat([df1, df2], ignore_index=True, axis=0)
 
-    df2 = df.iloc[df.index[-1]:,:]
-    df1 = pd.concat([df1, df2], ignore_index=True, axis=0)
+    elif sample == 0:
+        df1 = df
 
     # split data columns from recorder into components
-    SensorData = [ item for item in df1[sensor].values.tolist()[1:] ]
-    Latitudes  = [ item[0] for item in df1['Location'].values.tolist()[1:] ]
-    Longitudes = [ item[1] for item in df1['Location'].values.tolist()[1:] ]
-    Altitudes  = [ item[2] for item in df1['Location'].values.tolist()[1:] ]
-    Datetimes  = [ item for item in df1['Datetime'] ][1:]
-    Times      = [ (item - system.datetime0).total_seconds() for item in df1['Datetime'][1:] ]
+    SensorData = [ item for item in df1[sensor].values.tolist()[:] ]
+    Latitudes  = [ item[0] for item in df1['Location'].values.tolist()[:] ]
+    Longitudes = [ item[1] for item in df1['Location'].values.tolist()[:] ]
+    Altitudes  = [ item[2] for item in df1['Location'].values.tolist()[:] ]
+    Datetimes  = [ item for item in df1['Datetime'] ][:]
+    Times      = [ (item - system.datetime0).total_seconds() for item in df1['Datetime'][:] ]
 
     SensorX = [ item.x for item in SensorData ]
     SensorY = [ item.y for item in SensorData ]

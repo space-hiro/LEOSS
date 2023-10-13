@@ -5,6 +5,8 @@ import time as clock
 from tqdm import tqdm
 import pyIGRF as IGRF
 
+import numpy as np
+
 R2D = 180/math.pi
 D2R = math.pi/180
 
@@ -504,11 +506,46 @@ class Sensor():
         self.data = Vector(0,0,0)
         self.function = None
     
-    def setMethod(self, function):
+    def setMethod(self, function, args=[]):
         self.function = function
+        self.args = args
 
     def update(self):
-        self.data = self.function(self.attachedTo)
+        self.data = self.function(self.attachedTo, self.args)
+
+    def __repr__(self):
+        return str(self.data)
+    
+class Controller():
+
+    def __init__(self, name: str):
+        self.name = name
+        self.data = Vector(0,0,0)
+        self.function = None
+    
+    def setMethod(self, function, args=[]):
+        self.function = function
+        self.args = args
+
+    def update(self):
+        self.data = self.function(self.attachedTo, self.args)
+
+    def __repr__(self):
+        return str(self.data)
+    
+class Actuator():
+
+    def __init__(self, name: str):
+        self.name = name
+        self.data = Vector(0,0,0)
+        self.function = None
+    
+    def setMethod(self, function, args=[]):
+        self.function = function
+        self.args = args
+
+    def update(self):
+        self.data = self.function(self.attachedTo, self.args)
 
     def __repr__(self):
         return str(self.data)
@@ -523,12 +560,16 @@ class Spacecraft():
         self.netforce    = Vector(0,0,0)
         self.nettorque   = Vector(0,0,0)
         self.netmomentum = Vector(0,0,0)
-        
+
         self.location = Vector(0,0,0)
         self.system = None
 
         self.recorder = None
         self.sensors = {}
+        self.controllers = {}
+        self.actuators= {}
+        
+        self.torques = {}
 
     def getmass(self):
         return self.state.mass
@@ -604,7 +645,7 @@ class Spacecraft():
 
         self.inertia = rectbodyInertia(self.size, state.mass)
         self.netmomentum = self.netmomentum + self.inertia*state.bodyrate
-        self.nettorque = self.nettorque
+        self.nettorque = self.nettorque + self.getTorques()
 
         deltaState.bodyrate = self.inertia.inverse()*(self.nettorque-state.bodyrate.cross(self.netmomentum))
 
@@ -629,6 +670,46 @@ class Spacecraft():
         for sensor in self.sensors.values():
             sensor.update()
 
+    def addController(self, other):
+        if isinstance(other, Controller):
+            self.controllers[other.name] = other
+            other.attachedTo = self
+            other.system = self.system
+            self.recorder.addItem(other)
+
+    def getControllers(self):
+        return self.controllers
+    
+    def updateControllers(self):
+        for control in self.controllers.values():
+            control.update()
+
+    def addActuator(self, other):
+        if isinstance(other, Actuator):
+            self.actuators[other.name] = other
+            other.attachedTo = self
+            other.system = self.system
+            self.recorder.addItem(other)
+
+    def getActuators(self):
+        return self.actuators
+    
+    def updateActuators(self):
+        for actor in self.actuators.values():
+            actor.update()
+
+    def addTorque(self, other):
+        self.torques[other.name] = other
+        other.attachedTo = self
+        other.system = self.system
+        self.recorder.addItem(other)
+
+    def getTorques(self):
+        total_torque = Vector(0,0,0)
+        for torque in self.torques.values():
+            total_torque = total_torque + torque.data
+        return total_torque
+
     def __getitem__(self, item):
         if isinstance(item, str):
             if item == "State": 
@@ -641,8 +722,18 @@ class Spacecraft():
                 return self.netmomentum
             elif item == "Location": 
                 return self.location
+            
             elif item in list(self.sensors.keys()):
                 return self.getSensors()[item].data
+            
+            elif item in list(self.controllers.keys()):
+                return self.getControllers()[item].data
+            
+            elif item in list(self.actuators.keys()):
+                return self.getActuators()[item].data
+            
+            elif item in list(self.torques.keys()):
+                return self.getTorques()[item].data
             else:
                 raise TypeError("Operand should be a recorder item")
         else:
@@ -657,11 +748,9 @@ class Recorder():
 
         for item in datalist:
             self.dataDict[item] = []
-        self.update(datetime)
     
     def addItem(self, item):
         self.dataDict[item.name] = []
-        self[item.name].append(item.data)
 
     def update(self, datetime: datetime.datetime):
         Datetime = datetime
@@ -734,17 +823,22 @@ class LEOSS():
     
     def advance1timestep(self, deltaTime):
         for spacecraft in self.spacecraftObjects:
+
+            spacecraft.location = self.locate(spacecraft, self.time)
+            spacecraft.updateSensors()
+            spacecraft.updateControllers()
+            spacecraft.updateActuators()
             newstate = runggeKutta4(spacecraft.derivative, spacecraft.state, self.time, deltaTime)
             newstate.quaternion = newstate.quaternion.normalize()
+
+            self.recorderObjects[spacecraft.name].update(self.datenow()) #+datetime.timedelta(seconds=deltaTime)
+
             spacecraft.state = newstate
-            spacecraft.location = self.locate(spacecraft, self.time+deltaTime)
-            spacecraft.updateSensors()
-            self.recorderObjects[spacecraft.name].update(self.datenow()+datetime.timedelta(seconds=deltaTime))
+
         self.time = self.time + deltaTime
 
-    def initRecorders(self):
+    def updateRecorders(self):
         for spacecraft in self.spacecraftObjects:
-            spacecraft.updateSensors()
             self.recorderObjects[spacecraft.name].update(self.datenow())
     
     def __getitem__(self, item):
@@ -813,12 +907,6 @@ def runggeKutta4(derivative, state, time, deltaTime):
     return state + k
 
 def simulate(system: LEOSS, timeEnd, timeStep=1/32):
-    
-    for spacecraft in system.spacecraftObjects:
-        spacecraft.location = system.locate(spacecraft, system.time)
-        spacecraft.derivative(spacecraft.state, system.time)
-
-    system.initRecorders()
 
     while system.time < timeEnd:
         system.advance1timestep(timeStep)
@@ -837,12 +925,6 @@ def simulateProgress0(system: LEOSS, timeEnd, timeStep=1/32):
             pbar.update(timeStep)
 
 def simulateProgress(system: LEOSS, timeEnd, timeStep=1/32):
-    
-    for spacecraft in system.spacecraftObjects:
-        spacecraft.location = system.locate(spacecraft, system.time)
-        spacecraft.derivative(spacecraft.state, system.time)
-
-    system.initRecorders()
 
     print("\nRun Simulation (from "+str(system.time)+" to "+str(timeEnd)+", step="+str(timeStep)+")")
     t0 = clock.time()
@@ -873,7 +955,7 @@ def quaternionDerivative(omega: Vector, quat: Quaternion):
     qdotX = omega.x*quat.w +       0*quat.x + omega.z*quat.y - omega.y*quat.z
     qdotY = omega.y*quat.w - omega.z*quat.x +       0*quat.y + omega.x*quat.z
     qdotZ = omega.z*quat.w + omega.y*quat.x - omega.x*quat.y +       0*quat.z
-    return (1/2) * Quaternion( qdotW, qdotX, qdotY, qdotZ )
+    return Quaternion( qdotW/2, qdotX/2, qdotY/2, qdotZ/2 )
 
 def rectbodyInertia(size: Vector, mass: int or float):
     Lx = size.x
@@ -892,3 +974,60 @@ def hamiltonProduct(q1: Quaternion, q2: Quaternion):
     Z = q1.w*q2.z + q1.x*q2.y - q1.y*q2.x + q1.z*q2.w
 
     return Quaternion(W, X, Y, Z)
+
+def magnetometer_function(spacecraft, args):
+    location = spacecraft.location
+    magfield = IGRF.igrf_value(location[0], location[1], location[2], spacecraft.system.datenow().year)[3:6]
+    magfield_NED_vector = Vector(magfield[0], magfield[1], magfield[2]) * 1e-9
+
+    position = spacecraft.state.position
+    R = position.magnitude()
+    theta = math.acos(position.z/R)
+    psi   = math.atan2(position.y, position.x)
+    RPY = Vector(0, (theta+math.pi)*R2D, psi*R2D)
+
+    magfield_inertial_vector = RPY.RPY_toYPR_quaternion().toMatrix().transpose()*magfield_NED_vector
+
+    quaternion = spacecraft.state.quaternion
+    magfield_body_vector = quaternion.toMatrix()*magfield_inertial_vector
+
+    return magfield_body_vector
+
+def bdotcontroller_function(spacecraft, args):
+    magfield_body_vector0 = Vector(0,0,0)
+    time0 = spacecraft.system.datetime0
+
+    control_moment = Vector(0,0,0)
+
+    if len(spacecraft.recorder['ideal_MTM']) > 2:
+        magfield_body_vector0 = spacecraft.recorder['ideal_MTM'][-1]
+        time0 = spacecraft.recorder['Datetime'][-1]
+
+    if len(spacecraft.recorder['ideal_MTM']) > 1:
+        magfield_body_vector = spacecraft['ideal_MTM']
+        time = spacecraft.system.datenow()
+        
+        delta_magfield_body_vector = magfield_body_vector - magfield_body_vector0
+        delta_time = (time - time0).total_seconds()
+
+        control_moment = -args[0] * (delta_magfield_body_vector/delta_time)
+
+    return control_moment
+
+def magnetorquer_function(spacecraft, args):
+    
+    control_moment = spacecraft['ideal_BDOT']
+    magfield_body_vector = spacecraft['ideal_MTM']
+    control_torque = control_moment.cross(magfield_body_vector)
+
+    return control_torque
+
+
+ideal_magnetometer = Sensor('ideal_MTM')
+ideal_magnetometer.setMethod(magnetometer_function)
+
+ideal_bdotcontroller = Controller('ideal_BDOT')
+ideal_bdotcontroller.setMethod(bdotcontroller_function, [5e5])
+
+ideal_magnetorquer = Actuator('ideal_MTQ')
+ideal_magnetorquer.setMethod(magnetorquer_function)
