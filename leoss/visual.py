@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.transforms import offset_copy
 from matplotlib import gridspec
+from matplotlib.widgets import Cursor
 
 import matplotlib.ticker as mticker
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -21,7 +22,7 @@ def visual_check():
     s = LEOSS()
     return s
 
-def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi: int = 300, frameRef: str = 'Inertial'):
+def animatedAttitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi: int = 300, frameRef: str = 'Inertial'):
 
     df = pd.DataFrame.from_dict(recorder.dataDict)
 
@@ -114,9 +115,9 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
     ax6.view_init(0,90)
     ax7.view_init(90,0)
 
-    ax1.title.set_text(f'Quaternion')
-    ax2.title.set_text(f'Body Rates (deg/s)')
-    ax3.title.set_text(f'Euler Angles (deg)')
+    ax1.set_title(f'Quaternion', fontsize=10)
+    ax2.set_title(f'Body Rates (deg/s)', fontsize=10)
+    ax3.set_title(f'Euler Angles (deg)', fontsize=10)
 
     def init():
         ax1.set_ylim(-1.1,1.1)
@@ -362,6 +363,63 @@ def attitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp4", dpi:
 
     plt.close()
 
+def attitudeTrack(recorder: Recorder):
+
+    df = pd.DataFrame.from_dict(recorder.dataDict)
+
+    spacecraft = recorder.attachedTo
+    system     = spacecraft.system
+
+    Quaternions = [ item.quaternion for item in df['State'].values.tolist()[:] ]
+    Bodyrates   = [ item.bodyrate*R2D for item in df['State'].values.tolist()[:] ]
+    Datetimes   = [ item for item in df['Datetime'] ][:]
+    Times       = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][:] ]
+
+    fig = plt.figure(figsize=(12,6))
+    ax1 = fig.add_subplot(3,1,1)
+    ax2 = fig.add_subplot(3,1,2)
+    ax3 = fig.add_subplot(3,1,3)
+
+    QuatW = [ q.w for q in Quaternions ]
+    QuatX = [ q.x for q in Quaternions ]
+    QuatY = [ q.y for q in Quaternions ]
+    QuatZ = [ q.z for q in Quaternions ]
+    RateX = [ r.x for r in Bodyrates ]
+    RateY = [ r.y for r in Bodyrates ]
+    RateZ = [ r.z for r in Bodyrates ]
+
+    Eulers = [ q.YPR_toRPY_vector() for q in Quaternions ]
+    Roll  = [ item.x*R2D for item in Eulers ]
+    Pitch = [ item.y*R2D for item in Eulers ]
+    Yaw   = [ item.z*R2D for item in Eulers ]
+
+    ax1.plot(Times, QuatW, label='q0')
+    ax1.plot(Times, QuatX, label='q1')
+    ax1.plot(Times, QuatY, label='q2')
+    ax1.plot(Times, QuatZ, label='q3')
+    ax1.grid()
+    ax1.legend(bbox_to_anchor=(1, 0.5), loc="center left", prop={'family':'monospace'})
+
+    ax2.plot(Times, RateX, label='X')
+    ax2.plot(Times, RateY, label='Y')
+    ax2.plot(Times, RateZ, label='Z')
+    ax2.grid()
+    ax2.legend(bbox_to_anchor=(1, 0.5), loc="center left", prop={'family':'monospace'})   
+
+    ax3.plot(Times, Roll, label='roll')
+    ax3.plot(Times, Pitch, label='pitch')
+    ax3.plot(Times, Yaw, label='yaw')
+    ax3.grid()
+    ax3.legend(bbox_to_anchor=(1, 0.5), loc="center left", prop={'family':'monospace'})
+
+    ax1.set_title(f'Quaternion', fontsize=10)
+    ax2.set_title(f'Body Rates (deg/s)', fontsize=10)
+    ax3.set_title(f'Euler Angles (deg)', fontsize=10)
+    ax3.set_xlabel("Time (s)")
+
+    plt.suptitle(f'{spacecraft.name}\n{Datetimes[-1]}', fontname='monospace')
+    plt.subplots_adjust(hspace=0.4)   
+    plt.show()
 
 def groundTrack(recorder: Recorder, dateTime = -1):
 
@@ -569,7 +627,116 @@ def animateGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4',
 
     plt.close()
 
-def sensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas: str = 'mp4', dpi: int = 300):
+def sensorTrack(recorder: Recorder, sensor: str):
+        
+    df = pd.DataFrame.from_dict(recorder.dataDict)
+
+    spacecraft = recorder.attachedTo
+    system     = spacecraft.system
+
+    df['Position']  = [ item.position for item in df['State'].values.tolist()[:] ]
+    df['Velocity']  = [ item.velocity for item in df['State'].values.tolist()[:] ]
+    df['Quaternion'] = [ item.quaternion for item in df['State'].values.tolist()[:] ]
+    df['Bodyrate']  = [ item.bodyrate for item in df['State'].values.tolist()[:] ]
+
+    SensorData = [ item for item in df[sensor].values.tolist()[:] ]
+    Datetimes  = [ item for item in df['Datetime'] ][:]
+    Times      = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][:] ]
+
+    SensorX = [ item.x for item in SensorData ]
+    SensorY = [ item.y for item in SensorData ]
+    SensorZ = [ item.z for item in SensorData ]
+    SensorM = [ item.magnitude() for item in SensorData ]
+
+    fig = plt.figure(figsize=(12,6))
+    ax1 = fig.add_subplot(2,2,1)
+    ax2 = fig.add_subplot(2,2,2)
+    ax3 = fig.add_subplot(2,2,3)
+    ax4 = fig.add_subplot(2,2,4)
+
+    ax1.plot(Times, SensorX, label='X', color='#1f77b4')
+    ax2.plot(Times, SensorY, label='Y', color='#ff7f0e')
+    ax3.plot(Times, SensorZ, label='Z', color='#2ca02c')
+    ax4.plot(Times, SensorM, label='Magnitude', color='#d62728')
+
+    ax1.grid()
+    ax2.grid()
+    ax3.grid()
+    ax4.grid()
+
+    ax1.set_title(f'X', fontsize=10)
+    ax2.set_title(f'Y', fontsize=10)
+    ax3.set_title(f'Z', fontsize=10)
+    ax4.set_title(f'Magnitude', fontsize=10)
+
+    ax2.set_xlabel("Time (s)")
+    ax4.set_xlabel("Time (s)")
+
+    plt.suptitle(f'{spacecraft.name}: {sensor}\n{Datetimes[-1]}', fontname='monospace')
+    plt.subplots_adjust(hspace=0.4)  
+
+    cursor1 = Cursor(ax1, horizOn=True, vertOn=True, useblit=True, color='gray',linewidth=1, linestyle='--')
+    cursor2 = Cursor(ax2, horizOn=True, vertOn=True, useblit=True, color='gray',linewidth=1, linestyle='--')
+    cursor3 = Cursor(ax3, horizOn=True, vertOn=True, useblit=True, color='gray',linewidth=1, linestyle='--')
+    cursor4 = Cursor(ax4, horizOn=True, vertOn=True, useblit=True, color='gray',linewidth=1, linestyle='--')
+
+    annot1 = ax1.annotate("", xy=(0,0), xytext=(-40,40), textcoords="offset points",
+                         bbox=dict(boxstyle='round4', fc='linen', ec='k', lw=1),
+                         arrowprops=dict(arrowstyle='-|>'), zorder=10)
+    annot2 = ax2.annotate("", xy=(0,0), xytext=(-40,40), textcoords="offset points",
+                        bbox=dict(boxstyle='round4', fc='linen', ec='k', lw=1),
+                        arrowprops=dict(arrowstyle='-|>'), zorder=10)
+    annot3 = ax3.annotate("", xy=(0,0), xytext=(-40,40), textcoords="offset points",
+                        bbox=dict(boxstyle='round4', fc='linen', ec='k', lw=1),
+                        arrowprops=dict(arrowstyle='-|>'), zorder=10)
+    annot4 = ax4.annotate("", xy=(0,0), xytext=(-40,40), textcoords="offset points",
+                    bbox=dict(boxstyle='round4', fc='linen', ec='k', lw=1),
+                    arrowprops=dict(arrowstyle='-|>'), zorder=10)
+    
+    annot1.set_visible(False)
+    annot2.set_visible(False)
+    annot3.set_visible(False)
+    annot4.set_visible(False)
+
+    def axesToAnnot(axes):
+        if axes == ax1:
+            return annot1, SensorX
+        if axes == ax2:
+            return annot2, SensorY
+        if axes == ax3:
+            return annot3, SensorZ
+        if axes == ax4:
+            return annot4, SensorM
+
+    def onclick(event):
+        if event.button == 1 and event.inaxes != None:
+            x = event.xdata
+            if x < 0:
+                x = 0
+
+            annot, func = axesToAnnot(event.inaxes)
+            filtered = [ time for time in Times if time <= x ]
+            closestX = filtered[-1]
+            closestY = func[Times.index(closestX)]
+
+            annot.xy = (closestX, closestY)    
+            text = "(" + str( '%.2F'% closestX) + ", " + str( '%+.4E' % closestY) +")"
+            annot.set_text(text)
+            annot.set_visible(True)
+            fig.canvas.draw()
+
+            print("("+str(closestX)+", "+str(closestY)+")")
+
+        elif event.button == 3 and event.inaxes != None:
+            annot, func = axesToAnnot(event.inaxes)
+            annot.set_visible(False)
+            fig.canvas.draw()
+    
+    fig.canvas.mpl_connect('button_press_event', onclick)
+
+    plt.show()
+
+def animatedSensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas: str = 'mp4', dpi: int = 300):
 
     # get datadict from recorder as dataframe
     df = pd.DataFrame.from_dict(recorder.dataDict)
@@ -577,6 +744,11 @@ def sensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas: str = 
     # variable for spacecraft and system
     spacecraft = recorder.attachedTo
     system     = spacecraft.system
+
+    df['Position']  = [ item.position for item in df['State'].values.tolist()[:] ]
+    df['Velocity']  = [ item.velocity for item in df['State'].values.tolist()[:] ]
+    df['Quaternion'] = [ item.quaternion for item in df['State'].values.tolist()[:] ]
+    df['Bodyrate']  = [ item.bodyrate for item in df['State'].values.tolist()[:] ]
 
     if sample > 0:
         df1 = df.iloc[::sample,:]   

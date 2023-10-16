@@ -795,7 +795,7 @@ class LEOSS():
     def datenow(self):
         return self.datetime0 + datetime.timedelta(seconds=self.time)
 
-    def addSpacecraft(self, name, recordList: list = ["State"]):
+    def addSpacecraft(self, name, recordList: list = ['State','Location','Netforce','Nettorque','Netmoment']):
         spacecraft = Spacecraft(name)
         spacecraft.system = self
         self.spacecraftObjects.append(spacecraft)
