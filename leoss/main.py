@@ -5,8 +5,6 @@ import time as clock
 from tqdm import tqdm
 import pyIGRF as IGRF
 
-import numpy as np
-
 R2D = 180/math.pi
 D2R = math.pi/180
 
@@ -722,7 +720,9 @@ class Spacecraft():
                 return self.netmomentum
             elif item == "Location": 
                 return self.location
-            
+            elif item == "Sunlocation":
+                return self.system.sunLocation
+
             elif item in list(self.sensors.keys()):
                 return self.getSensors()[item].data
             
@@ -770,10 +770,13 @@ class LEOSS():
     def __init__(self):
         self.spacecraftObjects = []
         self.recorderObjects = {}
+
         self.time = 0.0
         self.mu = 398600.4418e9
         self.radi = 6378.137e3
+
         self.epochDT(datetime.datetime.today())
+        self.sunVector, self.sunLocation = systemSun(self)
 
     def epochDT(self, dt: datetime.datetime):
             self.epoch(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond)
@@ -795,7 +798,9 @@ class LEOSS():
     def datenow(self):
         return self.datetime0 + datetime.timedelta(seconds=self.time)
 
-    def addSpacecraft(self, name, recordList: list = ['State','Location','Netforce','Nettorque','Netmoment']):
+    def addSpacecraft(self, name, recordList: list = []):
+        
+        recordList = ['State','Location','Netforce','Nettorque','Netmoment','Sunlocation'] + recordList
         spacecraft = Spacecraft(name)
         spacecraft.system = self
         self.spacecraftObjects.append(spacecraft)
@@ -822,6 +827,9 @@ class LEOSS():
         return len(self.spacecraftObjects)
     
     def advance1timestep(self, deltaTime):
+
+        self.sunVector, self.sunLocation = systemSun(self)
+
         for spacecraft in self.spacecraftObjects:
 
             spacecraft.location = self.locate(spacecraft, self.time)
@@ -897,6 +905,54 @@ class LEOSS():
 def systemGravity(system: LEOSS, mass, position):
     rho = position.magnitude()
     return -(system.mu*mass/(rho**3))*position
+
+def systemSun(system: LEOSS):
+    # AU = 149597870.691
+    
+    date = system.datenow()
+    second = date.second
+    minute = date.minute
+    hour   = date.hour
+    day    = date.day
+    month  = date.month
+    year   = date.year
+
+    C = ((((second/60) + minute)/60) + hour)/24
+    jdate = 367*year - int((7*(year + int(month+9)/12))/4) + int(275*month/9) + day + 1721013.5 + C
+    
+    n  = jdate - 2451545
+    # cy = n/36525
+    M  = 57.528 + 0.9856003*n
+    M  = M % 360
+    L  = 280.460 + 0.98564736*n
+    L  = L % 360
+    Lamda = L + 1.915*math.sin(M*D2R) + 0.020*math.sin(2*M*D2R)
+    Lamda = Lamda % 360
+    eps   = 23.439 - 0.0000004*n
+    u   = Vector( math.cos(Lamda*D2R) , math.sin(Lamda*D2R)*math.cos(eps*D2R), math.sin(Lamda*D2R)*math.sin(eps*D2R) )
+    # rS  = (1.00014 - 0.01671*math.cos(M*D2R) - 0.000140*math.cos(2*M*D2R))*AU
+    # r_S = rS * u
+
+    sun_unitVector = u
+
+    mag = sun_unitVector.magnitude()
+
+    theta = math.acos(sun_unitVector.z/mag)
+    psi   = math.atan2(sun_unitVector.y, sun_unitVector.x)
+
+    latitude  = 90 - (theta*R2D)
+    longitude = psi*R2D
+
+    gmst_ = system.gmst + system.time*(360.98564724)/(24*3600) 
+    longitude = longitude - gmst_
+    if longitude < 0:
+        longitude = (((longitude/360) - int(longitude/360)) * 360) + 360    
+    if longitude > 180:
+        longitude = -360 + longitude
+
+    sun_LatLon = Vector( latitude, longitude, 0)
+
+    return sun_unitVector, sun_LatLon
 
 def runggeKutta4(derivative, state, time, deltaTime):
     k1 = derivative(state, time)

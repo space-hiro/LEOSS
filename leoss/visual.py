@@ -431,6 +431,7 @@ def groundTrack(recorder: Recorder, dateTime = -1):
     system     = spacecraft.system
 
     # split data columns from recorder into components
+    SunLocation = [ item for item in df['Sunlocation'].values.tolist()[:] ]
     Latitudes  = [ item[0] for item in df['Location'].values.tolist()[:] ]
     Longitudes = [ item[1] for item in df['Location'].values.tolist()[:] ]
     Altitudes  = [ item[2] for item in df['Location'].values.tolist()[:] ]
@@ -476,7 +477,8 @@ def groundTrack(recorder: Recorder, dateTime = -1):
     # replace datetime input as a datetime object, from int or float
     currentTime = 0
     if isinstance(dateTime, datetime.datetime):
-        currentTime = (dateTime - system.datetime0).total_seconds()
+        delta = (Datetimes[1] - Datetimes[0]).total_seconds()
+        currentTime = (dateTime - system.datetime0).total_seconds() - delta
     elif isinstance(dateTime, int) or isinstance(dateTime, float):
         if dateTime > Times[0] and dateTime <= Times[-1]:
             currentTime = dateTime
@@ -499,6 +501,10 @@ def groundTrack(recorder: Recorder, dateTime = -1):
     index = Times.index(currentTime)
     spot, = ax.plot(Longitudes[index], Latitudes[index] , marker='o', color='white', markersize=12,
             alpha=0.5, transform=ccrs.PlateCarree(), zorder=3.0)
+    
+    sun, = ax.plot(SunLocation[index].y, SunLocation[index].x , marker='o', color='yellow', markersize=12,
+        alpha=1.0, transform=ccrs.PlateCarree(), zorder=3.0)
+
     
     # create a legend on the current location with details on lat,lon and lat
     lat = str('%.2F'% Latitudes[index]+"°")
@@ -533,10 +539,11 @@ def animateGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4',
         df1 = df
 
     # split data columns from recorder into components
+    SunLocation = [ item for item in df1['Sunlocation'].values.tolist()[:] ]
     Latitudes  = [ item[0] for item in df1['Location'].values.tolist()[:] ]
     Longitudes = [ item[1] for item in df1['Location'].values.tolist()[:] ]
     Altitudes  = [ item[2] for item in df1['Location'].values.tolist()[:] ]
-    Datetimes  = [ item for item in df1['Datetime'] ][1:]
+    Datetimes  = [ item for item in df1['Datetime'] ][:]
     Times      = [ (item - system.datetime0).total_seconds() for item in df1['Datetime'][:] ]
 
     # initialize figure and projection 
@@ -574,6 +581,9 @@ def animateGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4',
     spot, = ax.plot(Longitudes[0], Latitudes[0] , marker='o', color='white', markersize=12,
             alpha=0.5, transform=ccrs.PlateCarree(), zorder=3.0)
 
+    sun, = ax.plot(SunLocation[0].y, SunLocation[0].x , marker='o', color='yellow', markersize=12,
+            alpha=1.0, transform=ccrs.PlateCarree(), zorder=3.0)
+
     # create legend / label on the current track position    
     geodetic_transform = ccrs.PlateCarree()._as_mpl_transform(ax)
     text_transform = offset_copy(geodetic_transform, units='dots', x=+15, y=+0)
@@ -590,7 +600,7 @@ def animateGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4',
     plt.suptitle(f'{spacecraft.name}\n{system.datetime0}')
 
     def init():
-        return plot, spot, text,
+        return plot, spot, text, sun
 
     def update(frame):
         plt.suptitle(f'{spacecraft.name}\n{Datetimes[frame]}', fontname='monospace')
@@ -603,6 +613,7 @@ def animateGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4',
         index = len([ item for item in Times if item <= current_time ]) - 1
    
         spot.set_data([Longitudes[index], Latitudes[index]])
+        sun.set_data([SunLocation[index].y, SunLocation[index].x])
 
         lat = str('%.2F'% Latitudes[index]+"°")
         lon = str('%.2F'% Longitudes[index]+"°")
@@ -610,7 +621,7 @@ def animateGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4',
         txt = "lat: "+lat+"\nlon: "+lon+"\nalt: "+alt
         text.set(position=[Longitudes[index], Latitudes[index]], text=txt)       
 
-        return plot, spot, text,
+        return plot, spot, text, sun
 
     print("\nRun Animation (from "+str(Times[0])+" to "+str(Times[-1])+", step="+str(Times[1]-Times[0])+")")
     anim = FuncAnimation(
@@ -759,6 +770,7 @@ def animatedSensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas
         df1 = df
 
     # split data columns from recorder into components
+    SunLocation = [ item for item in df1['Sunlocation'].values.tolist()[:] ]
     SensorData = [ item for item in df1[sensor].values.tolist()[:] ]
     Latitudes  = [ item[0] for item in df1['Location'].values.tolist()[:] ]
     Longitudes = [ item[1] for item in df1['Location'].values.tolist()[:] ]
@@ -814,6 +826,9 @@ def animatedSensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas
     # create a spot for the current track position
     spot, = ax1.plot(Longitudes[0], Latitudes[0] , marker='o', color='white', markersize=12,
             alpha=0.5, transform=ccrs.PlateCarree(), zorder=3.0)
+    
+    sun, = ax1.plot(SunLocation[0].y, SunLocation[0].x , marker='o', color='yellow', markersize=12,
+            alpha=1.0, transform=ccrs.PlateCarree(), zorder=3.0)
 
     # create legend / label on the current track position    
     geodetic_transform = ccrs.PlateCarree()._as_mpl_transform(ax1)
@@ -837,7 +852,7 @@ def animatedSensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas
 
         plt.subplots_adjust(wspace=0, right=0, left=0)   
 
-        return plot, spot, text, ln1, ln2, ln3,
+        return plot, spot, text, ln1, ln2, ln3, sun
 
     def update(frame):
         plt.suptitle(f'{spacecraft.name}\n{Datetimes[frame]}', fontname='monospace')
@@ -859,6 +874,7 @@ def animatedSensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas
         index = len([ item for item in Times if item <= current_time ]) - 1
    
         spot.set_data([Longitudes[index], Latitudes[index]])
+        sun.set_data([SunLocation[index].y, SunLocation[index].x])
 
         lat = str('%.2F'% Latitudes[index]+"°")
         lon = str('%.2F'% Longitudes[index]+"°")
@@ -877,7 +893,7 @@ def animatedSensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas
 
         ax2.set_xlim(Times[0]-1, Times[frame]+10)    
 
-        return plot, spot, text, ln1, ln2, ln3
+        return plot, spot, text, ln1, ln2, ln3, sun
 
     print("\nRun Animation (from "+str(Times[0])+" to "+str(Times[-1])+", step="+str(Times[1]-Times[0])+")")
     anim = FuncAnimation(
