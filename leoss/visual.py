@@ -137,7 +137,8 @@ def animatedAttitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp
                 ln15, ln16, ln17, ln18, ln19, ln20, ln21, ln22, ln23,
 
     def update(frame):
-        plt.suptitle(f'{spacecraft.name}\n{Datetimes[frame]}', fontname='monospace')
+        datetimeText = Datetimes[frame].strftime("%Y-%m-%d %H:%M:%S.%f")
+        plt.suptitle(f'{spacecraft.name}\n{datetimeText}', fontname='monospace')
 
         ln1.set_data(Times[0: frame], QuatW[0: frame])
         ln2.set_data(Times[0: frame], QuatX[0: frame])
@@ -609,13 +610,15 @@ def animateGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4',
         transform=text_transform, fontsize=8,
         bbox=dict(facecolor='white', alpha=0.5, boxstyle='round'), fontdict={'family':'monospace'})
 
-    plt.suptitle(f'{spacecraft.name}\n{system.datetime0}')
+    datetimeText = system.datetime0.strftime("%Y-%m-%d %H:%M:%S.%f")
+    plt.suptitle(f'{spacecraft.name}\n{datetimeText}', fontname='monospace')
 
     def init():
         return plot, spot, text, sun
 
     def update(frame):
-        plt.suptitle(f'{spacecraft.name}\n{Datetimes[frame]}', fontname='monospace')
+        datetimeText = Datetimes[frame].strftime("%Y-%m-%d %H:%M:%S.%f")
+        plt.suptitle(f'{spacecraft.name}\n{datetimeText}', fontname='monospace')
 
         animateGroundTrack.ns.set_visible(False)
         animateGroundTrack.ns = ax.add_feature(Nightshade(Datetimes[frame], alpha=0.3))
@@ -855,7 +858,8 @@ def animatedSensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas
         transform=text_transform, fontsize=8,
         bbox=dict(facecolor='white', alpha=0.5, boxstyle='round'), fontdict={'family':'monospace'})
 
-    plt.suptitle(f'{spacecraft.name}\n{system.datetime0}')
+    datetimeText = system.datetime0.strftime("%Y-%m-%d %H:%M:%S.%f")
+    plt.suptitle(f'{spacecraft.name}\n{datetimeText}', fontname='monospace')
 
     ax2.title.set_text(f'{sensor} output')
     ax2.grid(visible=True)
@@ -867,7 +871,8 @@ def animatedSensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas
         return plot, spot, text, ln1, ln2, ln3, sun
 
     def update(frame):
-        plt.suptitle(f'{spacecraft.name}\n{Datetimes[frame]}', fontname='monospace')
+        datetimeText = Datetimes[frame].strftime("%Y-%m-%d %H:%M:%S.%f")
+        plt.suptitle(f'{spacecraft.name}\n{datetimeText}', fontname='monospace')
 
         animateGroundTrack.ns.set_visible(False)
         animateGroundTrack.ns = ax1.add_feature(Nightshade(Datetimes[frame], alpha=0.3))
