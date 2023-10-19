@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.2.8"
+    assert __version__ == "0.2.9"
 
 def test_01():
     '''

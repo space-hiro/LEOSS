@@ -722,6 +722,8 @@ class Spacecraft():
                 return self.location
             elif item == "Sunlocation":
                 return self.system.sunLocation
+            elif item == "Sunvector":
+                return self.system.sunVector
 
             elif item in list(self.sensors.keys()):
                 return self.getSensors()[item].data
@@ -1065,6 +1067,54 @@ def magnetorquer_function(spacecraft, args):
 
     return control_torque
 
+def sunsensor_function(spacecraft, args):
+    
+    quaternion = spacecraft.state.quaternion
+    sun_body_vector = quaternion.toMatrix() * spacecraft['Sunvector']
+
+    return sun_body_vector
+
+def LVLHqerror_function(spacecraft, args):
+    r = spacecraft.state.position.normalize()
+    v = spacecraft.state.velocity.normalize()
+    h = r.cross(v)
+    t = h.cross(r)
+
+    ECI2Body = spacecraft.state.quaternion
+    ECI2LVLH = Matrix( t, -1*h, -1*r ).transpose().toQuaternion()
+    LVLH2Body = ECI2Body - ECI2LVLH
+    
+    return LVLH2Body
+
+def nadircontroller_function(spacecraft, args):
+    control_torques = Vector(0, 0, 0)
+    if len(spacecraft.recorder['State']) > 1:
+        qError = LVLHqerror_function(spacecraft, args)
+
+        rate = spacecraft.state.velocity.magnitude()/spacecraft.state.position.magnitude()
+        rate0 = spacecraft.recorder['State'][-1].velocity.magnitude() / spacecraft.recorder['State'][-1].position.magnitude()
+
+        time = spacecraft.system.datenow()
+        time0 = spacecraft.recorder['Datetime'][-1]
+
+        wRef = Vector(0, -1*rate, 0)
+        wRef0 = Vector(0, -1*rate0, 0)
+        DwRef = (wRef - wRef0) / (time - time0).total_seconds()
+        w = spacecraft.state.bodyrate
+        wError = w - wRef
+
+        MRP = Vector(qError.x, qError.y, qError.z) / (1 + qError.w)
+        I = spacecraft.inertia
+
+        if MRP.magnitude()**2 > 1:
+            MRP = -1 * MRP / (MRP.magnitude()**2)
+
+        diag = Matrix( Vector(args[0], 0, 0), 
+                       Vector(0, args[1], 0),
+                       Vector(0, 0, args[2]))
+
+        control_torques = -args[3] * MRP - diag * wError + I * (DwRef - w.cross(wRef)) + wRef.cross(I * w)
+    return control_torques
 
 ideal_magnetometer = Sensor('ideal_MTM')
 ideal_magnetometer.setMethod(magnetometer_function)
@@ -1074,3 +1124,9 @@ ideal_bdotcontroller.setMethod(bdotcontroller_function, [5e5])
 
 ideal_magnetorquer = Actuator('ideal_MTQ')
 ideal_magnetorquer.setMethod(magnetorquer_function)
+
+ideal_sunsensor = Sensor('ideal_SS')
+ideal_sunsensor.setMethod(sunsensor_function)
+
+ideal_nadircontroller = Controller('ideal_NADIR')
+ideal_nadircontroller.setMethod(nadircontroller_function, [3e-4, 3e-4, 3e-4, 2e-4])

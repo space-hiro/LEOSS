@@ -45,6 +45,7 @@ def animatedAttitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp
 
     States      = [ item for item in df1['State'].values.tolist()[:] ]
     Positions   = [ item.position for item in df1['State'].values.tolist()[:] ]
+    Velocities  = [ item.velocity for item in df1['State'].values.tolist()[:] ]
     Quaternions = [ item.quaternion for item in df1['State'].values.tolist()[:] ]
     Bodyrates   = [ item.bodyrate*R2D for item in df1['State'].values.tolist()[:] ]
     Datetimes   = [ item for item in df1['Datetime'] ][:]
@@ -161,7 +162,7 @@ def animatedAttitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp
         ax2.legend(loc='lower left', prop={'family':'monospace'}, ncol=3)   
 
         ln8.set_label("Roll = "+str('%+.4F' % Roll[frame]))
-        ln9.set_label("Pith = "+str('%+.4F' % Pitch[frame]))
+        ln9.set_label("Pitch = "+str('%+.4F' % Pitch[frame]))
         ln10.set_label('Yaw = '+str('%+.4F' % Yaw[frame]))
         ax3.legend(loc='lower left', prop={'family':'monospace'}, ncol=3)  
 
@@ -170,21 +171,30 @@ def animatedAttitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp
         zaxis = Vector(0,0,1)
         maxis = Matrices[frame] * spacecraft.inertia*Bodyrates[frame]
 
-        maxisZ = maxis.normalize()
-        if maxisZ.cross(zaxis).magnitude() == 0:
-            maxisX = maxisZ.cross(xaxis).normalize()
-        else:
-            maxisX = maxisZ.cross(zaxis).normalize()
-        maxisY = maxisZ.cross(maxisX).normalize()
-        MomentumRotation = Matrix(maxisX, maxisY,maxisZ)
-
         Rotation = Matrices[frame]
         maxisLine = maxis.normalize() * ratio * 2
 
         if frameRef == 'Momentum':
+            maxisZ = maxis.normalize()
+            if maxisZ.cross(zaxis).magnitude() == 0:
+                maxisX = maxisZ.cross(xaxis).normalize()
+            else:
+                maxisX = maxisZ.cross(zaxis).normalize()
+            maxisY = maxisZ.cross(maxisX).normalize()
+            MomentumRotation = Matrix(maxisX, maxisY,maxisZ)
+
             Rotation = MomentumRotation.transpose() * Matrices[frame]
             maxisLine = MomentumRotation.transpose() * maxis.normalize() * ratio * 2
 
+        if frameRef == 'Orbit':
+            Raxis = Positions[frame].normalize()
+            Vaxis = Velocities[frame].normalize()
+            Haxis = Raxis.cross(Vaxis)
+            Taxis = Haxis.cross(Raxis)
+            OrbitRotation = Matrix(Taxis, -1*Haxis, -1*Raxis)
+
+            Rotation = OrbitRotation.transpose() * Matrices[frame]
+            maxisLine = OrbitRotation.transpose() * maxis.normalize() * ratio * 2
 
         xaxis = Rotation * xaxis * xs * 2
         yaxis = Rotation * yaxis * ys * 2
@@ -325,11 +335,13 @@ def animatedAttitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp
             frameText = 'ECIF'
         if frameRef == 'Momentum':
             frameText = 'Angular Momentum Vector'
+        if frameRef == 'Orbit':
+            frameText = 'LVLH Earth Pointing'
 
         ax4.set_title(f'3D View\nFrame = {frameText}', fontsize=10, fontname='monospace')
-        ax5.set_title(f'Perspective Along X', fontsize=10, fontname='monospace', y=-0.01)
-        ax6.set_title(f'Perspective Along Y', fontsize=10, fontname='monospace', y=-0.01)
-        ax7.set_title(f'Perspective Along Z', fontsize=10, fontname='monospace', y=-0.01)
+        ax5.set_title(f'Perspective Along +X', fontsize=10, fontname='monospace', y=-0.01)
+        ax6.set_title(f'Perspective Along +Y', fontsize=10, fontname='monospace', y=-0.01)
+        ax7.set_title(f'Perspective Along +Z', fontsize=10, fontname='monospace', y=-0.01)
 
         if frame > 0:
             ax1.set_xlim(Times[0]-1, Times[frame]+10)
