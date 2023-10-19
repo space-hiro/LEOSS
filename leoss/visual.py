@@ -921,3 +921,61 @@ def animatedSensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas
         anim.save("Sensortrack.gif", writer='pillow', fps=30)
 
     plt.close()
+
+def export(recorder: Recorder, tStart: int = 0, tEnd: int = -1, filename='data'):
+
+    n      = 4
+    method = 'linear'
+    order  = 5
+
+    df = pd.DataFrame.from_dict(recorder.dataDict)
+
+    spacecraft = recorder.attachedTo
+    system = spacecraft.system
+
+    Positions   = [ item.position for item in df['State'].values.tolist()[:] ]
+    Velocities  = [ item.velocity for item in df['State'].values.tolist()[:] ]
+    Quaternions = [ item.quaternion for item in df['State'].values.tolist()[:] ]
+    Bodyrates   = [ item.bodyrate for item in df['State'].values.tolist()[:] ]
+    Datetimes   = [ item for item in df['Datetime'] ][:]
+    Times       = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][:] ]
+
+    if tEnd < 0:
+        tEnd = Times[-1]
+
+    out = pd.DataFrame()
+
+    out['t'] = pd.DataFrame( Times )
+    out['x'] = pd.DataFrame( [ item.x for item in Positions ] )
+    out['y'] = pd.DataFrame( [ item.y for item in Positions ] )
+    out['z'] = pd.DataFrame( [ item.z for item in Positions ] )
+    out['xdot'] = pd.DataFrame( [ item.x for item in Velocities ] )
+    out['ydot'] = pd.DataFrame( [ item.y for item in Velocities ] )
+    out['zdot'] = pd.DataFrame( [ item.z for item in Velocities ] )
+    out['q0'] = pd.DataFrame( [ item.w for item in Quaternions ] )
+    out['q1'] = pd.DataFrame( [ item.x for item in Quaternions ] )
+    out['q2'] = pd.DataFrame( [ item.y for item in Quaternions ] )
+    out['q3'] = pd.DataFrame( [ item.z for item in Quaternions ] )
+    out['p'] = pd.DataFrame( [ item.x for item in Bodyrates ] )
+    out['q'] = pd.DataFrame( [ item.y for item in Bodyrates ] )
+    out['r'] = pd.DataFrame( [ item.z for item in Bodyrates ] )
+    
+    outcopy = out.copy()
+
+    new_index = outcopy.index
+    new_out = outcopy.copy()
+
+    new_out['index'] = new_index*n
+    new_out = new_out.set_index('index')
+
+    new_index2 = pd.RangeIndex(start=0, stop=(len(new_index)*n)-(n-1), step=1)
+    new_out = new_out.reindex(new_index2)
+
+    new_out = new_out.interpolate(method=method, order=order)
+    
+    clipped_out = new_out[new_out['t']>=tStart]
+    clipped_out = clipped_out[clipped_out['t']<=tEnd]
+    
+    clipped_out.to_csv(filename+".csv",index=False)
+
+    print("\n\t"+"Filename: "+filename+".csv EXPORTED!")
