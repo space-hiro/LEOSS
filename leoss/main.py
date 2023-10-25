@@ -741,6 +741,20 @@ class Spacecraft():
         else:
             raise TypeError("Operand should be a recorder item in str")
 
+class GroundStation():
+
+    def __init__(self, name, latitude, longitude, altitude):
+        self.name = name
+        self.longitude = longitude  ## deg
+        self.latitude = latitude    ## deg
+        self.altitude = altitude    ## meters
+
+        self.min_elevation = 0
+
+    def setElevation(self, other):
+        if isinstance(other, int) or isinstance(other, float):
+            self.min_elevation = other
+
 class Recorder():
 
     def __init__(self, datetime: datetime.datetime,  spacecraft: Spacecraft, datalist: list):
@@ -1020,7 +1034,7 @@ def hamiltonProduct(q1: Quaternion, q2: Quaternion):
 
     return Quaternion(W, X, Y, Z)
 
-def magnetometer_function(spacecraft, args):
+def magnetometer_function(spacecraft: Spacecraft, args):
     location = spacecraft.location
     magfield = IGRF.igrf_value(location[0], location[1], location[2], spacecraft.system.datenow().year)[3:6]
     magfield_NED_vector = Vector(magfield[0], magfield[1], magfield[2]) * 1e-9
@@ -1038,7 +1052,7 @@ def magnetometer_function(spacecraft, args):
 
     return magfield_body_vector
 
-def bdotcontroller_function(spacecraft, args):
+def bdotcontroller_function(spacecraft: Spacecraft, args):
     magfield_body_vector0 = Vector(0,0,0)
     time0 = spacecraft.system.datetime0
 
@@ -1059,7 +1073,7 @@ def bdotcontroller_function(spacecraft, args):
 
     return control_moment
 
-def magnetorquer_function(spacecraft, args):
+def magnetorquer_function(spacecraft: Spacecraft, args):
     
     control_moment = spacecraft['ideal_BDOT']
     magfield_body_vector = spacecraft['ideal_MTM']
@@ -1067,14 +1081,14 @@ def magnetorquer_function(spacecraft, args):
 
     return control_torque
 
-def sunsensor_function(spacecraft, args):
+def sunsensor_function(spacecraft: Spacecraft, args):
     
     quaternion = spacecraft.state.quaternion
     sun_body_vector = quaternion.toMatrix() * spacecraft['Sunvector']
 
     return sun_body_vector
 
-def LVLHqerror_function(spacecraft, args):
+def LVLHqerror_function(spacecraft: Spacecraft, args):
     r = spacecraft.state.position.normalize()
     v = spacecraft.state.velocity.normalize()
     h = r.cross(v)
@@ -1086,7 +1100,7 @@ def LVLHqerror_function(spacecraft, args):
     
     return LVLH2Body
 
-def nadircontroller_function(spacecraft, args):
+def nadircontroller_function(spacecraft: Spacecraft, args):
     control_torques = Vector(0, 0, 0)
     if len(spacecraft.recorder['State']) > 1:
         qError = LVLHqerror_function(spacecraft, args)
@@ -1116,6 +1130,38 @@ def nadircontroller_function(spacecraft, args):
         control_torques = -args[3] * MRP - diag * wError + I * (DwRef - w.cross(wRef)) + wRef.cross(I * w)
     return control_torques
 
+def elevationsensor_function(spacecraft: Spacecraft, args):
+
+    station = args[0]
+    system = spacecraft.system
+    gmst_ = system.gmst + system.time*(360.98564724)/(24*3600) 
+
+    latitude  = station.latitude
+    longitude = station.longitude
+    altitude  = station.altitude
+
+    longitude = longitude + gmst_
+
+    if longitude < 0:
+        longitude = (((longitude/360) - int(longitude/360)) * 360) + 360    
+    if longitude > 180:
+        longitude = -360 + longitude
+
+    x = math.cos(longitude*D2R)*math.cos(latitude*D2R)
+    y = math.sin(longitude*D2R)*math.cos(latitude*D2R)
+    z = math.sin(latitude*D2R)
+
+    target = Vector(x, y, z) * (system.radi + altitude)
+
+    position = spacecraft.state.position
+
+    target2pos = position - target
+
+    angle = math.acos( (target.normalize() * target2pos.normalize()).sum() ) * R2D
+    angle = 90 - angle
+
+    return Vector(angle, angle, angle)
+
 ideal_magnetometer = Sensor('ideal_MTM')
 ideal_magnetometer.setMethod(magnetometer_function)
 
@@ -1130,3 +1176,8 @@ ideal_sunsensor.setMethod(sunsensor_function)
 
 ideal_nadircontroller = Controller('ideal_NADIR')
 ideal_nadircontroller.setMethod(nadircontroller_function, [3e-4, 3e-4, 3e-4, 2e-4])
+
+pedro_station = GroundStation('PEDRO', 14.647219, 121.07195333, 5)
+
+ideal_elevationsensor = Sensor('ideal_ELEV')
+ideal_elevationsensor.setMethod(elevationsensor_function, [pedro_station])

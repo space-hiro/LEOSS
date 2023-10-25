@@ -452,7 +452,7 @@ def groundTrack(recorder: Recorder, dateTime = -1):
     Times      = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][:] ]
 
     # initialize figure and projection 
-    fig = plt.figure(figsize=(20, 10))
+    fig = plt.figure(figsize=(12, 6))
     ax = plt.axes(projection=ccrs.PlateCarree())
 
     # add the default global map
@@ -472,8 +472,10 @@ def groundTrack(recorder: Recorder, dateTime = -1):
     gl.ylabel_style = {'size': 10, 'color': 'black'}
 
     # now we define exactly which ones to label and spruce up the labels
-    gl.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
-    gl.ylocator = mticker.FixedLocator([-80, -60, -40, -20, 0, 20, 40, 60, 80])
+    longitude_list = list(range(-180,180+45,45))
+    latitude_list = list(range(-90,90+20,20))
+    gl.xlocator = mticker.FixedLocator(longitude_list)
+    gl.ylocator = mticker.FixedLocator(latitude_list)
     gl.xformatter = LONGITUDE_FORMATTER
     gl.yformatter = LATITUDE_FORMATTER
 
@@ -534,7 +536,113 @@ def groundTrack(recorder: Recorder, dateTime = -1):
 
     plt.show()
 
-def animateGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4', dpi: int = 300):
+def passTrack(recorder: Recorder, dateTime = -1):
+
+    # get datadict from recorder as dataframe
+    df = pd.DataFrame.from_dict(recorder.dataDict)
+
+    # variable for spacecraft and system
+    spacecraft = recorder.attachedTo
+    system     = spacecraft.system
+
+    # split data columns from recorder into components
+    SunLocation = [ item for item in df['Sunlocation'].values.tolist()[:] ]
+    Latitudes  = [ item[0] for item in df['Location'].values.tolist()[:] ]
+    Longitudes = [ item[1] for item in df['Location'].values.tolist()[:] ]
+    Altitudes  = [ item[2] for item in df['Location'].values.tolist()[:] ]
+    Datetimes  = [ item for item in df['Datetime'] ][:]
+    Times      = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][:] ]
+
+    # initialize figure and projection 
+    fig = plt.figure(figsize=(10, 10))
+    ax = plt.axes(projection=ccrs.PlateCarree())
+
+    # add the default global map
+    # ax.stock_img()
+    img = plt.imread("NE1_50M_SR_W.tif")
+    # ax.set_extent([ 121.07195333-10, 121.07195333+10, 14.647219-5, 14.647219+5 ], ccrs=ccrs.PlateCarree())
+    ax.imshow(img, origin='upper', extent=(-180, 180, -90, 90), transform=ccrs.PlateCarree())
+    ax.set_extent([ 121.07195333-10, 121.07195333+10, 14.647219-10, 14.647219+10 ])
+
+    # create gridlines
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+                  linewidth=1, color='white', alpha = 0.25,
+                  linestyle='--')
+
+    # labels on bottom and left axes
+    gl.top_labels = False
+    gl.right_labels = False
+
+    # define the label style
+    gl.xlabel_style = {'size': 10, 'color': 'black'}
+    gl.ylabel_style = {'size': 10, 'color': 'black'}
+
+    # now we define exactly which ones to label and spruce up the labels
+    longitude_list = list(range(-180,180+2,2))
+    latitude_list = list(range(-90,90+2,2))
+    gl.xlocator = mticker.FixedLocator(longitude_list)
+    gl.ylocator = mticker.FixedLocator(latitude_list)
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+
+    # plot the scatter points for longitude and latitude track
+    plot = plt.scatter(Longitudes, Latitudes,
+        color='red', s=0.2, zorder=2.5,
+        transform=ccrs.PlateCarree(),
+        )
+    
+    # if datetime input is -1 then set the datetime as current datetime (plot all from Start to End)
+    if dateTime == -1:
+        dateTime = system.datenow()
+
+    # replace datetime input as a datetime object, from int or float
+    currentTime = 0
+    if isinstance(dateTime, datetime.datetime):
+        delta = (Datetimes[1] - Datetimes[0]).total_seconds()
+        currentTime = (dateTime - system.datetime0).total_seconds() - delta
+    elif isinstance(dateTime, int) or isinstance(dateTime, float):
+        if dateTime > Times[0] and dateTime <= Times[-1]:
+            currentTime = dateTime
+            dateTime = (system.datetime0+datetime.timedelta(seconds=currentTime))
+        else:
+            raise ValueError("Datetime input should valid time")
+    else:
+        raise TypeError("Datetime input should be int, float or datettime type")
+    
+    # create a super title with name of spacecraft and datetime
+    plt.suptitle(f'{spacecraft.name}\n{dateTime}')
+
+    # set the visibility of the track to only show the track from start time to the input time
+    plot.set_alpha([ item<=currentTime for item in Times])
+
+    # show the nightshade transition on the global map
+    ax.add_feature(Nightshade(dateTime, alpha=0.3))
+
+    # create a spot on the current location given the time
+    index = Times.index(currentTime)
+    spot, = ax.plot(Longitudes[index], Latitudes[index] , marker='o', color='white', markersize=12,
+            alpha=0.5, transform=ccrs.PlateCarree(), zorder=3.0)
+    
+    sun, = ax.plot(SunLocation[index].y, SunLocation[index].x , marker='o', color='yellow', markersize=12,
+        alpha=1.0, transform=ccrs.PlateCarree(), zorder=3.0)
+
+    
+    # create a legend on the current location with details on lat,lon and lat
+    lat = str('%.2F'% Latitudes[index]+"°")
+    lon = str('%.2F'% Longitudes[index]+"°")
+    alt = str('%.2F'% Altitudes[index]+"km")
+    txt = "lat: "+lat+"\nlon: "+lon+"\nalt: "+alt
+    geodetic_transform = ccrs.PlateCarree()._as_mpl_transform(ax)
+    text_transform = offset_copy(geodetic_transform, units='dots', x=+15, y=+0)
+
+    label = ax.text(Longitudes[index], Latitudes[index], txt,
+        verticalalignment='center', horizontalalignment='left',
+        transform=text_transform, fontsize=8,
+        bbox=dict(facecolor='white', alpha=0.5, boxstyle='round'), fontdict={'family':'monospace'})
+
+    plt.show()
+
+def animatedGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4', dpi: int = 300):
 
     # get datadict from recorder as dataframe
     df = pd.DataFrame.from_dict(recorder.dataDict)
@@ -567,7 +675,7 @@ def animateGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4',
     ax.stock_img()
 
     # nighshade 
-    animateGroundTrack.ns = ax.add_feature(Nightshade(system.datetime0, alpha=0.3))
+    animatedGroundTrack.ns = ax.add_feature(Nightshade(system.datetime0, alpha=0.3))
     
     # gridlines
     gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
@@ -620,8 +728,8 @@ def animateGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4',
         datetimeText = Datetimes[frame].strftime("%Y-%m-%d %H:%M:%S.%f")
         plt.suptitle(f'{spacecraft.name}\n{datetimeText}', fontname='monospace')
 
-        animateGroundTrack.ns.set_visible(False)
-        animateGroundTrack.ns = ax.add_feature(Nightshade(Datetimes[frame], alpha=0.3))
+        animatedGroundTrack.ns.set_visible(False)
+        animatedGroundTrack.ns = ax.add_feature(Nightshade(Datetimes[frame], alpha=0.3))
         current_time = (Datetimes[frame] - system.datetime0).total_seconds()
         plot.set_alpha( [item <= current_time for item in Times ])
 
@@ -811,7 +919,7 @@ def animatedSensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas
     ax1.stock_img()
 
     # nighshade 
-    animateGroundTrack.ns = ax1.add_feature(Nightshade(system.datetime0, alpha=0.3))
+    animatedGroundTrack.ns = ax1.add_feature(Nightshade(system.datetime0, alpha=0.3))
     
     # gridlines
     gl = ax1.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
@@ -874,8 +982,8 @@ def animatedSensorTrack(recorder: Recorder, sensor: str, sample: int = 0, saveas
         datetimeText = Datetimes[frame].strftime("%Y-%m-%d %H:%M:%S.%f")
         plt.suptitle(f'{spacecraft.name}\n{datetimeText}', fontname='monospace')
 
-        animateGroundTrack.ns.set_visible(False)
-        animateGroundTrack.ns = ax1.add_feature(Nightshade(Datetimes[frame], alpha=0.3))
+        animatedGroundTrack.ns.set_visible(False)
+        animatedGroundTrack.ns = ax1.add_feature(Nightshade(Datetimes[frame], alpha=0.3))
         current_time = (Datetimes[frame] - system.datetime0).total_seconds()
         plot.set_alpha( [item <= current_time for item in Times ])
 
