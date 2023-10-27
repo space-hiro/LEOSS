@@ -639,13 +639,14 @@ class Spacecraft():
         self.netforce = self.netforce + systemGravity(self.system, state.mass, state.position)
         deltaState.velocity = self.netforce/state.mass
 
-        deltaState.quaternion = quaternionDerivative(state.bodyrate, state.quaternion)
-
         self.inertia = rectbodyInertia(self.size, state.mass)
-        self.netmomentum = self.netmomentum + self.inertia*state.bodyrate
-        self.nettorque = self.nettorque + self.getTorques()
+        if self.system.orbitPropOnly == False:
+            deltaState.quaternion = quaternionDerivative(state.bodyrate, state.quaternion)
 
-        deltaState.bodyrate = self.inertia.inverse()*(self.nettorque-state.bodyrate.cross(self.netmomentum))
+            self.netmomentum = self.netmomentum + self.inertia*state.bodyrate
+            self.nettorque = self.nettorque + self.getTorques()
+
+            deltaState.bodyrate = self.inertia.inverse()*(self.nettorque-state.bodyrate.cross(self.netmomentum))
 
         return deltaState
     
@@ -793,6 +794,8 @@ class LEOSS():
 
         self.epochDT(datetime.datetime.today())
         self.sunVector, self.sunLocation = systemSun(self)
+
+        self.orbitPropOnly = False
 
     def epochDT(self, dt: datetime.datetime):
             self.epoch(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond)
@@ -978,12 +981,16 @@ def runggeKutta4(derivative, state, time, deltaTime):
     k  = (1/6)*(k1 + 2*k2 + 2*k3 + k4)*deltaTime
     return state + k
 
-def simulate(system: LEOSS, timeEnd, timeStep=1/32):
+def simulate(system: LEOSS, timeEnd, timeStep=1/32, orbitPropOnly = False):
+
+    system.orbitPropOnly = orbitPropOnly
 
     while system.time < timeEnd:
         system.advance1timestep(timeStep)
 
-def simulateProgress(system: LEOSS, timeEnd, timeStep=1/32):
+def simulateProgress(system: LEOSS, timeEnd, timeStep=1/32, orbitPropOnly = False):
+
+    system.orbitPropOnly = orbitPropOnly
 
     print("\nRun Simulation (from "+str(system.time)+" to "+str(timeEnd)+", step="+str(timeStep)+")")
     t0 = clock.time()
@@ -1178,6 +1185,7 @@ ideal_nadircontroller = Controller('ideal_NADIR')
 ideal_nadircontroller.setMethod(nadircontroller_function, [3e-4, 3e-4, 3e-4, 2e-4])
 
 pedro_station = GroundStation('PEDRO', 14.647219, 121.07195333, 5)
+davao_station = GroundStation('DVO_GRS', 7.125278, 125.645833, 5)
 
 ideal_elevationsensor = Sensor('ideal_ELEV')
 ideal_elevationsensor.setMethod(elevationsensor_function, [pedro_station])

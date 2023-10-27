@@ -1,10 +1,13 @@
 from .main import *
 
+# import PIL
+
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.transforms import offset_copy
 from matplotlib import gridspec
 from matplotlib.widgets import Cursor
+from matplotlib.widgets import Button
 
 import matplotlib.ticker as mticker
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -13,7 +16,10 @@ import pandas as pd
 import numpy as np
 
 import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 from cartopy.feature.nightshade import Nightshade
+from shapely.geometry import Polygon
+from cartopy.geodesic import Geodesic
 
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
@@ -536,7 +542,22 @@ def groundTrack(recorder: Recorder, dateTime = -1):
 
     plt.show()
 
-def passTrack(recorder: Recorder, dateTime = -1):
+def passTrack(recorder: Recorder, groundstation: GroundStation, dateTime = -1):
+
+    class Pass():
+        def __init__(self, aos: datetime.datetime, tca: datetime.datetime, elev: int or float, los: datetime.datetime):
+            self.AOS = aos
+            self.TCA = tca
+            self.LOS = los
+            self.angleTCA = elev
+
+            self.duration = (los-aos).total_seconds()
+        
+        def __str__(self):
+            return f'Pass(AOS:{self.AOS}, TCA:{self.TCA}, MaxElev:{self.angleTCA}, LOS:{self.LOS}, Duration:{self.duration})'
+        
+        def __repr__(self):
+            return self.__str__()
 
     # get datadict from recorder as dataframe
     df = pd.DataFrame.from_dict(recorder.dataDict)
@@ -544,25 +565,85 @@ def passTrack(recorder: Recorder, dateTime = -1):
     # variable for spacecraft and system
     spacecraft = recorder.attachedTo
     system     = spacecraft.system
+    station    = groundstation
 
     # split data columns from recorder into components
     SunLocation = [ item for item in df['Sunlocation'].values.tolist()[:] ]
-    Latitudes  = [ item[0] for item in df['Location'].values.tolist()[:] ]
-    Longitudes = [ item[1] for item in df['Location'].values.tolist()[:] ]
-    Altitudes  = [ item[2] for item in df['Location'].values.tolist()[:] ]
-    Datetimes  = [ item for item in df['Datetime'] ][:]
-    Times      = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][:] ]
+    Positions   = [ item.position for item in df['State'].values.tolist()[:] ]
+    Latitudes   = [ item[0] for item in df['Location'].values.tolist()[:] ]
+    Longitudes  = [ item[1] for item in df['Location'].values.tolist()[:] ]
+    Altitudes   = [ item[2] for item in df['Location'].values.tolist()[:] ]
+    Datetimes   = [ item for item in df['Datetime'] ][:]
+    Times       = [ (item - system.datetime0).total_seconds() for item in df['Datetime'][:] ]
+
+    Passes = []
+    passing = False
+    start = None
+    end   = None
+    high  = None
+    radius = None
+    for index in np.arange(0, len(Positions), 1):
+        position = Positions[index]
+        time = Times[index]
+        gmst_ = system.gmst + time*(360.98564724)/(24*3600) 
+
+        latitude  = station.latitude
+        longitude = station.longitude
+        altitude  = station.altitude
+
+        longitude = longitude + gmst_
+
+        if longitude < 0:
+            longitude = (((longitude/360) - int(longitude/360)) * 360) + 360    
+        if longitude > 180:
+            longitude = -360 + longitude
+
+        x = math.cos(longitude*D2R)*math.cos(latitude*D2R)
+        y = math.sin(longitude*D2R)*math.cos(latitude*D2R)
+        z = math.sin(latitude*D2R)
+
+        target = Vector(x, y, z) * (system.radi + altitude)
+
+        target2pos = position - target
+
+        angle = math.acos( (target.normalize() * target2pos.normalize()).sum() ) * R2D
+        angle = 90 - angle - station.min_elevation
+
+        if (angle >= 0) and (passing == False):
+            start = Datetimes[index]
+            end = None
+            passing = True
+            high = [angle, start]
+            # print('Entered')
+        if (angle >= 0) and (passing == True):
+            if angle > high[0]:
+                high =  [angle, Datetimes[index]] 
+        if angle < 0 and passing == True:
+            end = Datetimes[index]
+            passing = False
+            newPass = Pass(start, high[1], high[0]+station.min_elevation, end)
+            Passes.append(newPass)
+            radius = (position.normalize()*system.radi - target.normalize()*system.radi).magnitude()
+
+            start = None
+            end = None
+            print(newPass)
+            # print('Exit')
 
     # initialize figure and projection 
     fig = plt.figure(figsize=(10, 10))
     ax = plt.axes(projection=ccrs.PlateCarree())
 
     # add the default global map
-    # ax.stock_img()
     img = plt.imread("NE1_50M_SR_W.tif")
-    # ax.set_extent([ 121.07195333-10, 121.07195333+10, 14.647219-5, 14.647219+5 ], ccrs=ccrs.PlateCarree())
-    ax.imshow(img, origin='upper', extent=(-180, 180, -90, 90), transform=ccrs.PlateCarree())
-    ax.set_extent([ 121.07195333-10, 121.07195333+10, 14.647219-10, 14.647219+10 ])
+    # img = plt.imread("blue_marble_14MB.png")
+    # img = plt.imread("blue_marble_181MB.png")
+    # PIL.Image.MAX_IMAGE_PIXELS = 233280000
+    # img = plt.imread("blue_marble_26MB.jpg")
+    ax.imshow(img, origin='upper', extent=(-180, 180, -90, 90), transform=ccrs.PlateCarree(), vmin=0, vmax=255)
+    ext = 25
+    ax.set_extent([ station.longitude-ext, station.longitude+ext, station.latitude-ext, station.latitude+ext ], crs=ccrs.PlateCarree())
+    ax.add_feature(cfeature.COASTLINE, edgecolor="black", ls="-", lw=0.5)
 
     # create gridlines
     gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
@@ -608,38 +689,197 @@ def passTrack(recorder: Recorder, dateTime = -1):
             raise ValueError("Datetime input should valid time")
     else:
         raise TypeError("Datetime input should be int, float or datettime type")
-    
-    # create a super title with name of spacecraft and datetime
-    plt.suptitle(f'{spacecraft.name}\n{dateTime}')
 
     # set the visibility of the track to only show the track from start time to the input time
-    plot.set_alpha([ item<=currentTime for item in Times])
+    currentpass = Passes[0]
+    startpass = (currentpass.AOS - system.datetime0).total_seconds()
+    tcapass = (currentpass.TCA - system.datetime0).total_seconds()
+    endpass = (currentpass.LOS - system.datetime0).total_seconds()
+    plot.set_alpha( [item>=startpass and item<=endpass for item in Times ])
+
+    # create a super title with name of spacecraft and datetime
+    plt.suptitle(f'{spacecraft.name}\n{currentpass.TCA}')
 
     # show the nightshade transition on the global map
-    ax.add_feature(Nightshade(dateTime, alpha=0.3))
+    passTrack.ns = ax.add_feature(Nightshade(currentpass.TCA, alpha=0.3))
 
     # create a spot on the current location given the time
-    index = Times.index(currentTime)
-    spot, = ax.plot(Longitudes[index], Latitudes[index] , marker='o', color='white', markersize=12,
+    startIndex = Times.index(startpass)
+    endIndex   = Times.index(endpass)
+    tcaIndex   = Times.index(tcapass)
+
+    # A = 1 + math.tan(station.min_elevation*D2R)**2
+    # B = 2 * system.radi * math.tan(station.min_elevation*D2R)
+    # H = Altitudes[tcaIndex]*1000
+    # C = -2 * system.radi * H - (H*H)
+
+    # Xaos = (-B + math.sqrt(B**2 - 4*A*C)) / 2*A
+    # Yaos = math.tan(station.min_elevation*D2R)*Xaos
+    # M = (Yaos + system.radi) / Xaos
+    # arc0 = 90 - (math.atan(M)*R2D)
+    # print(arc0)
+
+    # arc = math.acos(system.radi/(Altitudes[tcaIndex]*1000 + system.radi))
+    # radius = arc0*D2R * (system.radi + Altitudes[tcaIndex]*1000)
+    # ax.tissot(lons=[station.longitude], lats=[station.latitude], rad_km=500*1000, alpha=0.25, facecolor='orange', edgecolor='black')
+    circle = Geodesic().circle(station.longitude, station.latitude, radius, n_samples=80)
+    feature = cfeature.ShapelyFeature([Polygon(circle)], ccrs.PlateCarree(), alpha=0.2, fc='white', ec="black")
+    ax.add_feature(feature)
+    # print(arc*R2D)
+
+    text_radius = str('%.2F' % (radius/1000))
+    ax.set_title(f'Pass #{1}/{len(Passes)}, Ground Radius: {text_radius} km.')
+
+    startSpot, = ax.plot(Longitudes[startIndex], Latitudes[startIndex] , marker='o', color='white', markersize=5,
             alpha=0.5, transform=ccrs.PlateCarree(), zorder=3.0)
-    
-    sun, = ax.plot(SunLocation[index].y, SunLocation[index].x , marker='o', color='yellow', markersize=12,
+    tcaSpot, = ax.plot(Longitudes[tcaIndex], Latitudes[tcaIndex] , marker='o', color='white', markersize=5,
+        alpha=0.5, transform=ccrs.PlateCarree(), zorder=3.0)
+    endSpot, = ax.plot(Longitudes[endIndex], Latitudes[endIndex] , marker='o', color='white', markersize=5,
+        alpha=0.5, transform=ccrs.PlateCarree(), zorder=3.0)
+    sun, = ax.plot(SunLocation[tcaIndex].y, SunLocation[tcaIndex].x , marker='o', color='yellow', markersize=5,
+        alpha=1.0, transform=ccrs.PlateCarree(), zorder=3.0)
+    groundSpot, = ax.plot(station.longitude, station.latitude , marker='x', color='red', markersize=5,
         alpha=1.0, transform=ccrs.PlateCarree(), zorder=3.0)
 
-    
     # create a legend on the current location with details on lat,lon and lat
-    lat = str('%.2F'% Latitudes[index]+"°")
-    lon = str('%.2F'% Longitudes[index]+"°")
-    alt = str('%.2F'% Altitudes[index]+"km")
-    txt = "lat: "+lat+"\nlon: "+lon+"\nalt: "+alt
+    lat1 = str('%.2F'% Latitudes[startIndex]+"°")
+    lon1 = str('%.2F'% Longitudes[startIndex]+"°")
+    alt1 = str('%.2F'% Altitudes[startIndex]+"km")
+    txt1 = "lat: "+lat1+"\nlon: "+lon1+"\nalt: "+alt1
     geodetic_transform = ccrs.PlateCarree()._as_mpl_transform(ax)
     text_transform = offset_copy(geodetic_transform, units='dots', x=+15, y=+0)
 
-    label = ax.text(Longitudes[index], Latitudes[index], txt,
+    label1 = ax.text(Longitudes[startIndex], Latitudes[startIndex], txt1,
         verticalalignment='center', horizontalalignment='left',
-        transform=text_transform, fontsize=8,
+        transform=text_transform, fontsize=6,
+        bbox=dict(facecolor='white', alpha=0.5, boxstyle='round'), fontdict={'family':'monospace'})
+    
+    lat2 = str('%.2F'% Latitudes[tcaIndex]+"°")
+    lon2 = str('%.2F'% Longitudes[tcaIndex]+"°")
+    alt2 = str('%.2F'% Altitudes[tcaIndex]+"km")
+    elev = str('%.2F'% currentpass.angleTCA+"°")
+    txt2 = "lat: "+lat2+"\nlon: "+lon2+"\nalt: "+alt2+"\nelev: "+elev
+
+    label2 = ax.text(Longitudes[tcaIndex], Latitudes[tcaIndex], txt2,
+        verticalalignment='center', horizontalalignment='left',
+        transform=text_transform, fontsize=6,
+        bbox=dict(facecolor='white', alpha=0.5, boxstyle='round'), fontdict={'family':'monospace'})
+    
+    lat3 = str('%.2F'% Latitudes[endIndex]+"°")
+    lon3 = str('%.2F'% Longitudes[endIndex]+"°")
+    alt3 = str('%.2F'% Altitudes[endIndex]+"km")
+    txt3 = "lat: "+lat3+"\nlon: "+lon3+"\nalt: "+alt3
+
+    label3 = ax.text(Longitudes[endIndex], Latitudes[endIndex], txt3,
+        verticalalignment='center', horizontalalignment='left',
+        transform=text_transform, fontsize=6,
         bbox=dict(facecolor='white', alpha=0.5, boxstyle='round'), fontdict={'family':'monospace'})
 
+    class Index():
+        ind = 0
+
+        def next(self, event):
+            self.ind += 1
+            if self.ind > len(Passes)-1:
+                self.ind = 0
+            currentpass = Passes[self.ind]
+            print(currentpass)
+            startpass = (currentpass.AOS - system.datetime0).total_seconds()
+            tcapass = (currentpass.TCA - system.datetime0).total_seconds()
+            endpass = (currentpass.LOS - system.datetime0).total_seconds()
+            plot.set_alpha( [item>=startpass and item<=endpass for item in Times ])
+            plt.suptitle(f'{spacecraft.name}\n{currentpass.TCA}')
+            passTrack.ns.set_visible(False)
+            passTrack.ns = ax.add_feature(Nightshade(currentpass.TCA, alpha=0.3))
+
+            ax.set_title(f'Pass #{self.ind+1}/{len(Passes)}, Ground Radius: {text_radius} km.')
+
+            startIndex = Times.index(startpass)
+            endIndex   = Times.index(endpass)
+            tcaIndex   = Times.index(tcapass)
+
+            startSpot.set_data([Longitudes[startIndex], Latitudes[startIndex]])
+            tcaSpot.set_data([Longitudes[tcaIndex], Latitudes[tcaIndex]])
+            endSpot.set_data([Longitudes[endIndex], Latitudes[endIndex]])
+            sun.set_data([SunLocation[tcaIndex].y, SunLocation[tcaIndex].x])
+
+            lat1 = str('%.2F'% Latitudes[startIndex]+"°")
+            lon1 = str('%.2F'% Longitudes[startIndex]+"°")
+            alt1 = str('%.2F'% Altitudes[startIndex]+"km")
+            txt1 = "lat: "+lat1+"\nlon: "+lon1+"\nalt: "+alt1
+            label1.set(position=[Longitudes[startIndex], Latitudes[startIndex]], text=txt1)  
+
+            lat2 = str('%.2F'% Latitudes[tcaIndex]+"°")
+            lon2 = str('%.2F'% Longitudes[tcaIndex]+"°")
+            alt2 = str('%.2F'% Altitudes[tcaIndex]+"km")
+            elev = str('%.2F'% currentpass.angleTCA+"°")
+            txt2 = "lat: "+lat2+"\nlon: "+lon2+"\nalt: "+alt2+"\nelev: "+elev
+            label2.set(position=[Longitudes[tcaIndex], Latitudes[tcaIndex]], text=txt2)  
+
+            lat3 = str('%.2F'% Latitudes[endIndex]+"°")
+            lon3 = str('%.2F'% Longitudes[endIndex]+"°")
+            alt3 = str('%.2F'% Altitudes[endIndex]+"km")
+            txt3 = "lat: "+lat3+"\nlon: "+lon3+"\nalt: "+alt3
+            label3.set(position=[Longitudes[endIndex], Latitudes[endIndex]], text=txt3)  
+
+            plt.draw()
+
+        def prev(self, event):
+            global ns
+            self.ind -= 1
+            if self.ind < 0:
+                self.ind = len(Passes)-1
+            currentpass = Passes[self.ind]
+            print(currentpass)
+            startpass = (currentpass.AOS - system.datetime0).total_seconds()
+            tcapass = (currentpass.TCA - system.datetime0).total_seconds()
+            endpass = (currentpass.LOS - system.datetime0).total_seconds()
+            plot.set_alpha( [item>=startpass and item<=endpass for item in Times ])
+            plt.suptitle(f'{spacecraft.name}\n{currentpass.TCA}')
+            passTrack.ns.set_visible(False)
+            passTrack.ns = ax.add_feature(Nightshade(currentpass.TCA, alpha=0.3))
+            
+            ax.set_title(f'Pass #{self.ind+1}/{len(Passes)}, Ground Radius: {text_radius} km.')
+
+            startIndex = Times.index(startpass)
+            endIndex   = Times.index(endpass)
+            tcaIndex   = Times.index(tcapass)
+
+            startSpot.set_data([Longitudes[startIndex], Latitudes[startIndex]])
+            tcaSpot.set_data([Longitudes[tcaIndex], Latitudes[tcaIndex]])
+            endSpot.set_data([Longitudes[endIndex], Latitudes[endIndex]])
+            sun.set_data([SunLocation[tcaIndex].y, SunLocation[tcaIndex].x])
+
+            lat1 = str('%.2F'% Latitudes[startIndex]+"°")
+            lon1 = str('%.2F'% Longitudes[startIndex]+"°")
+            alt1 = str('%.2F'% Altitudes[startIndex]+"km")
+            txt1 = "lat: "+lat1+"\nlon: "+lon1+"\nalt: "+alt1
+            label1.set(position=[Longitudes[startIndex], Latitudes[startIndex]], text=txt1)  
+
+            lat2 = str('%.2F'% Latitudes[tcaIndex]+"°")
+            lon2 = str('%.2F'% Longitudes[tcaIndex]+"°")
+            alt2 = str('%.2F'% Altitudes[tcaIndex]+"km")
+            elev = str('%.2F'% currentpass.angleTCA+"°")
+            txt2 = "lat: "+lat2+"\nlon: "+lon2+"\nalt: "+alt2+"\nelev: "+elev
+            label2.set(position=[Longitudes[tcaIndex], Latitudes[tcaIndex]], text=txt2)  
+
+            lat3 = str('%.2F'% Latitudes[endIndex]+"°")
+            lon3 = str('%.2F'% Longitudes[endIndex]+"°")
+            alt3 = str('%.2F'% Altitudes[endIndex]+"km")
+            txt3 = "lat: "+lat3+"\nlon: "+lon3+"\nalt: "+alt3
+            label3.set(position=[Longitudes[endIndex], Latitudes[endIndex]], text=txt3)  
+
+            plt.draw()
+
+    callback = Index()
+    axprev = fig.add_axes([0.7, 0.05, 0.1, 0.075])
+    axnext = fig.add_axes([0.81, 0.05, 0.1, 0.075])
+    bnext = Button(axnext, 'Next')
+    bnext.on_clicked(callback.next)
+    bprev = Button(axprev, 'Previous')
+    bprev.on_clicked(callback.prev)
+
+    print("Number of Passes: "+str(len(Passes))+", Ground Radius: "+str(radius)+" m.")
     plt.show()
 
 def animatedGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4', dpi: int = 300):
