@@ -5,6 +5,12 @@ LEOSS
 
 This project README is still in construction...
 
+****
+
+.. contents:: Table of contents
+   :backlinks: top
+   :local:
+
 Installation
 ============
 
