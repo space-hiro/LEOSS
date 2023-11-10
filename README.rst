@@ -29,6 +29,7 @@ location relative to a specific point on the Earth or a ground site in particula
 Example-01: Basic GroundTrack
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+``Python Code``
 .. code:: python
 
     system = LEOSS()
@@ -50,6 +51,7 @@ Example-01: Basic GroundTrack
 
     groundTrack(recorder['DIWATA'])
 
+``Terminal Output``
 .. code:: sh
 
     Run Simulation (from 0.0 to 14400, step=4)
