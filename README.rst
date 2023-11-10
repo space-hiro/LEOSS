@@ -216,13 +216,13 @@ License
 .. |Groundtrack GIF| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Groundtrack.gif
 .. |Passtrack Image1| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Figure_2.png
 .. |Passtrack Image2| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Figure_3.png
-    :width: 100pt
-    :height: 100pt
+    :width: 300pt
+    :height: 300pt
 .. |Passtrack Image3| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Figure_4.png
-    :width: 100pt
-    :height: 100pt
+    :width: 300pt
+    :height: 300pt
 .. |Passtrack Image4| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Figure_5.png
-    :width: 100pt
-    :height: 100pt
+    :width: 300pt
+    :height: 300pt
 .. |Attitudetrack| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Attitudetrack.gif
 .. |Sensortrack| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Sensortrack.gif
