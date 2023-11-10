@@ -171,7 +171,8 @@ Terminal Output:
     #12:    Pass(AOS:2023-01-04 00:40:56, TCA:2023-01-04 00:44:16, MaxElev:4.822331693934615, LOS:2023-01-04 00:47:40, Duration:404.0)
     Number of Passes: 12, Ground Radius: 2241175.1615987364 m.
 
-|Passtrack Image|
+|Passtrack Image1|  
+    |Passtrack Image2| |Passtrack Image3| |Passtrack Image4|
 
 The figure above shows the output GIF from the line ``animatedGroundTrack(recorder['DIWATA']), sample=4, saveas='gif')``. 
 This is the animated version of the previous example, sampled at every ``4th`` frames.
@@ -213,6 +214,9 @@ License
 
 .. |Groundtrack Image| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Figure_1.png
 .. |Groundtrack GIF| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Groundtrack.gif
-.. |Passtrack Image| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Figure_2.png
+.. |Passtrack Image1| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Figure_2.png
+.. |Passtrack Image2| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Figure_3.png
+.. |Passtrack Image3| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Figure_4.png
+.. |Passtrack Image4| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Figure_5.png
 .. |Attitudetrack| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Attitudetrack.gif
 .. |Sensortrack| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Sensortrack.gif
