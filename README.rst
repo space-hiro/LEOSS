@@ -64,6 +64,8 @@ Terminal Output:
 
 |Groundtrack Image|
 
+.. class:: center
+
 The figure above shows the output plot from the line  ``groundTrack(recorder['DIWATA'])``. The horizontal axis is the longitude ranging from 180° W to 180° E (or -180° to 180°).
 The vertical axis is the geodetic latitude ranging from 90° S to 90° N (or -90° to 90°). This two-dimensional groundtrack shows the predicted track satellite track over a rotating Earth.
 The sub-satellite point (the point on Earth where the satellite is directly above), is presented as a white circle, likewise the sun is the yellow circle.
