@@ -102,6 +102,6 @@ License
 `MIT <https://choosealicense.com/licenses/mit/>`__
 
 .. |Groundtrack Image| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Figure_1.png
-.. |Groundtrack GIF image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Groundtrack.gif
+.. |Groundtrack GIF| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Groundtrack.gif
 .. |Attitudetrack| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Attitudetrack.gif
 .. |Sensortrack| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Sensortrack.gif
