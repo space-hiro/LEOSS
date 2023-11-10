@@ -26,8 +26,10 @@ Groundtracks
 as it travels through its orbit. The practical use case of this feature is for determining satellite orbit position and
 location relative to a specific point on the Earth or a ground site in particular. 
 
-Example-01: Basic GroundTrack, Python Code:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example-01: Basic GroundTrack
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Python Code:
 
 .. code:: python
 
@@ -51,8 +53,7 @@ Example-01: Basic GroundTrack, Python Code:
     groundTrack(recorder['DIWATA'])
 
 
-Example-01: Basic GroundTrack, Terminal Output:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Terminal Output:
 
 .. code:: sh
 
