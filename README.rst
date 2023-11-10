@@ -44,11 +44,21 @@ Example-01: Basic GroundTrack
     spacecraft["DIWATA"].setposition(Vector(-3398.36655479e3, 2536.91064491e3,  5312.67851581e3))
     spacecraft["DIWATA"].setvelocity(Vector(-5.05043202e3, -5.73213209e3, -0.49795572e3))
 
-    time = 60*60*24*1
+    time = 60*60*4
 
     simulateProgress(system, time, 8, orbitPropOnly=True)
 
     groundTrack(recorder['DIWATA'])
+
+.. code:: sh
+
+    Run Simulation (from 0.0 to 14400, step=4)
+    Simulating: 100%|█████████████████████████| 14400.0/14400.0 [00:00<00:00, 22944.82it/s]
+
+    Elapsed Time:   0.6345400810241699 sec.
+
+    Run Animation (from 0.0 to 14396.0, step=16.0)
+    Animating Ground Track:  18%|████▍                    | 161/900 [00:22<01:42,  7.24it/s]
 
 |Groundtrack Image|
 
