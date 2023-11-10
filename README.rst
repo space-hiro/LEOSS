@@ -50,7 +50,7 @@ Python Code:
 
     time = 60*60*4
 
-    simulateProgress(system, time, 8, orbitPropOnly=True)
+    simulateProgress(system, time, 4, orbitPropOnly=True)
 
     groundTrack(recorder['DIWATA'])
 
@@ -98,7 +98,7 @@ Python Code:
 
     time = 60*60*4
 
-    simulateProgress(system, time, 8, orbitPropOnly=True)
+    simulateProgress(system, time, 4, orbitPropOnly=True)
 
     animatedGroundTrack(recorder["DIWATA"], sample=4, saveas = 'gif')
 
