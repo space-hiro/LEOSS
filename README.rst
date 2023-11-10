@@ -62,14 +62,11 @@ Terminal Output:
 
     Elapsed Time:   0.6345400810241699 sec.
 
-    Run Animation (from 0.0 to 14396.0, step=16.0)
-    Animating Ground Track:  18%|████▍                    | 161/900 [00:22<01:42,  7.24it/s]
-
 |Groundtrack Image|
 
 This two-dimensional groundtrack shows the predicted track satellite track over a rotating Earth.
 
-|Groundtrack|
+|Groundtrack GIF|
 
 Animated Attitude Tracking
 --------------------------
@@ -105,6 +102,6 @@ License
 `MIT <https://choosealicense.com/licenses/mit/>`__
 
 .. |Groundtrack Image| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Figure_1.png
-.. |Groundtrack| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Groundtrack.gif
+.. |Groundtrack GIF image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Groundtrack.gif
 .. |Attitudetrack| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Attitudetrack.gif
 .. |Sensortrack| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Sensortrack.gif
