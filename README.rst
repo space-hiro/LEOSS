@@ -49,9 +49,9 @@ Example-01
 
     groundTrack(recorder['DIWATA'])
 
-|Groundtrack Image|
-
 This two-dimensional groundtrack shows the actual location over a rotating Earth.
+
+|Groundtrack Image|
 
 |Groundtrack|
 
