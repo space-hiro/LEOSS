@@ -146,6 +146,8 @@ Python Code:
 
     simulateProgress(system, time, 4, orbitPropOnly=True)
 
+    groundTrack(recorder['DIWATA'])
+
     test_station = GroundStation('TEST_GRS', 12, 122, 5)
     Passes = passTrack(recorder['DIWATA'], test_station)
 
@@ -171,6 +173,7 @@ Terminal Output:
     #12:    Pass(AOS:2023-01-04 00:40:56, TCA:2023-01-04 00:44:16, MaxElev:4.822331693934615, LOS:2023-01-04 00:47:40, Duration:404.0)
     Number of Passes: 12, Ground Radius: 2241175.1615987364 m.
 
+|Groundtrack|
 |Passtrack Image1|  
     |Passtrack Image2| |Passtrack Image3| |Passtrack Image4|
 
@@ -214,6 +217,7 @@ License
 
 .. |Groundtrack Image| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Figure_1.png
 .. |Groundtrack GIF| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Groundtrack.gif
+.. |Groundtrack| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Figure_6.png
 .. |Passtrack Image1| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Figure_2.png
 .. |Passtrack Image2| image:: https://github.com/space-hiro/LEOSS/blob/main/examples/Figure_3.png
     :width: 30%
