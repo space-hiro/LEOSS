@@ -149,7 +149,7 @@ Python Code:
     groundTrack(recorder['DIWATA'])
 
     test_station = GroundStation('TEST_GRS', 12, 122, 5)
-    Passes = passTrack(recorder['DIWATA'], test_station)
+    passTrack(recorder['DIWATA'], test_station)
 
 Terminal Output:
 
