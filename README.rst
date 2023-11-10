@@ -19,18 +19,18 @@ Usage
 
     from leoss import *
 
-Animated Groundtracks
+Groundtracks
 ---------------------
 
 ``Groundtracks``, by definition, are the locus of points formed by the points on the Earth directly below a satellite
 as it travels through its orbit. The practical use case of this feature is for determining satellite orbit position and
 location relative to a specific point on the Earth or a ground site in particular. 
 
-Example-01
-~~~~~~~~~~
+Example-01: Basic GroundTrack
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: python
-    
+
     system = LEOSS()
     system.epoch(2023,1,1,12,0,0)
 
@@ -50,9 +50,9 @@ Example-01
 
     groundTrack(recorder['DIWATA'])
 
-This two-dimensional groundtrack shows the actual location over a rotating Earth.
-
 |Groundtrack Image|
+
+This two-dimensional groundtrack shows the predicted track satellite track over a rotating Earth.
 
 |Groundtrack|
 
