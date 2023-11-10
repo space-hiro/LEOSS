@@ -64,12 +64,49 @@ Terminal Output:
 
 |Groundtrack Image|
 
-.. class:: center
-
 The figure above shows the output plot from the line  ``groundTrack(recorder['DIWATA'])``. The horizontal axis is the longitude ranging from 180° W to 180° E (or -180° to 180°).
 The vertical axis is the geodetic latitude ranging from 90° S to 90° N (or -90° to 90°). This two-dimensional groundtrack shows the predicted track satellite track over a rotating Earth.
 The sub-satellite point (the point on Earth where the satellite is directly above), is presented as a white circle, likewise the sun is the yellow circle.
-The instantaneous position (latitude, longitude and altitude) is annotated with the satellite. The name of the satellite is shown as the title: "DIWATA", the instantaneous datetime is also shown after the satellite name.
+The instantaneous position (latitude, longitude and altitude) is annotated with the satellite. The name of the satellite is shown as the title: ``DIWATA``, the instantaneous datetime is also shown after the satellite name.
+
+Example-02: Animated GroundTrack
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Python Code:
+
+.. code:: python
+
+    system = LEOSS()
+    system.epoch(2023,1,1,12,0,0)
+
+    system.addSpacecraft("DIWATA")
+
+    spacecraft = system.getSpacecrafts()
+    recorder   = system.getRecorders()
+
+    spacecraft["DIWATA"].setmass(4.00)
+    spacecraft["DIWATA"].setsize(Vector(0.1,0.1,0.3405))
+    spacecraft["DIWATA"].setposition(Vector(-3398.36655479e3, 2536.91064491e3,  5312.67851581e3))
+    spacecraft["DIWATA"].setvelocity(Vector(-5.05043202e3, -5.73213209e3, -0.49795572e3))
+
+    time = 60*60*4
+
+    simulateProgress(system, time, 8, orbitPropOnly=True)
+
+    animatedGroundTrack(recorder["DIWATA"], sample=4, saveas = 'gif')
+
+
+Terminal Output:
+
+.. code:: sh
+
+    Run Simulation (from 0.0 to 14400, step=4)
+    Simulating: 100%|█████████████████████████| 14400.0/14400.0 [00:00<00:00, 22535.73it/s]
+
+    Elapsed Time:   0.64249587059021 sec.
+
+    Run Animation (from 0.0 to 14396.0, step=16.0)
+    Animating Ground Track:  10%|██▍                      | 88/900 [00:12<01:56,  6.98it/s]
 
 |Groundtrack GIF|
 
