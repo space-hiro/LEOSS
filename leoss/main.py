@@ -756,6 +756,21 @@ class GroundStation():
         if isinstance(other, int) or isinstance(other, float):
             self.min_elevation = other
 
+class Pass():
+    def __init__(self, aos: datetime.datetime, tca: datetime.datetime, elev: int or float, los: datetime.datetime):
+        self.AOS = aos
+        self.TCA = tca
+        self.LOS = los
+        self.angleTCA = elev
+
+        self.duration = (los-aos).total_seconds()
+    
+    def __str__(self):
+        return f'Pass(AOS:{self.AOS}, TCA:{self.TCA}, MaxElev:{self.angleTCA}, LOS:{self.LOS}, Duration:{self.duration})'
+    
+    def __repr__(self):
+        return self.__str__()
+
 class Recorder():
 
     def __init__(self, datetime: datetime.datetime,  spacecraft: Spacecraft, datalist: list):

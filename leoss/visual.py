@@ -57,7 +57,6 @@ def animatedAttitudeTrack(recorder: Recorder, sample: int = 0, saveas: str = "mp
     Datetimes   = [ item for item in df1['Datetime'] ][:]
     Times       = [ (item - system.datetime0).total_seconds() for item in df1['Datetime'][:] ]
 
-    # plt.style.use("seaborn-v0_8")
     fig = plt.figure(figsize=(18,9))
     fig.tight_layout()
     ax1 = fig.add_subplot(3,2,2)
@@ -470,7 +469,7 @@ def groundTrack(recorder: Recorder, dateTime = -1):
                   linestyle='--')
 
     # labels on bottom and left axes
-    gl.top_labels = False
+    gl.top_labels  = False
     gl.right_labels = False
 
     # define the label style
@@ -479,11 +478,11 @@ def groundTrack(recorder: Recorder, dateTime = -1):
 
     # now we define exactly which ones to label and spruce up the labels
     longitude_list = list(range(-180,180+45,45))
-    latitude_list = list(range(-90,90+20,20))
-    gl.xlocator = mticker.FixedLocator(longitude_list)
-    gl.ylocator = mticker.FixedLocator(latitude_list)
-    gl.xformatter = LONGITUDE_FORMATTER
-    gl.yformatter = LATITUDE_FORMATTER
+    latitude_list  = list(range(-90,90+20,20))
+    gl.xlocator    = mticker.FixedLocator(longitude_list)
+    gl.ylocator    = mticker.FixedLocator(latitude_list)
+    gl.xformatter  = LONGITUDE_FORMATTER
+    gl.yformatter  = LATITUDE_FORMATTER
 
     # plot the scatter points for longitude and latitude track
     plot = plt.scatter(Longitudes, Latitudes,
@@ -543,21 +542,6 @@ def groundTrack(recorder: Recorder, dateTime = -1):
     plt.show()
 
 def passTrack(recorder: Recorder, groundstation: GroundStation, dateTime = -1):
-
-    class Pass():
-        def __init__(self, aos: datetime.datetime, tca: datetime.datetime, elev: int or float, los: datetime.datetime):
-            self.AOS = aos
-            self.TCA = tca
-            self.LOS = los
-            self.angleTCA = elev
-
-            self.duration = (los-aos).total_seconds()
-        
-        def __str__(self):
-            return f'Pass(AOS:{self.AOS}, TCA:{self.TCA}, MaxElev:{self.angleTCA}, LOS:{self.LOS}, Duration:{self.duration})'
-        
-        def __repr__(self):
-            return self.__str__()
 
     # get datadict from recorder as dataframe
     df = pd.DataFrame.from_dict(recorder.dataDict)
@@ -627,7 +611,7 @@ def passTrack(recorder: Recorder, groundstation: GroundStation, dateTime = -1):
 
             start = None
             end = None
-            print(newPass)
+            print("#"+str(len(Passes))+":\t"+str(newPass))
             # print('Exit')
 
     # initialize figure and projection 
@@ -881,6 +865,8 @@ def passTrack(recorder: Recorder, groundstation: GroundStation, dateTime = -1):
 
     print("Number of Passes: "+str(len(Passes))+", Ground Radius: "+str(radius)+" m.")
     plt.show()
+
+    return Passes
 
 def animatedGroundTrack(recorder: Recorder, sample: int = 0, saveas: str = 'mp4', dpi: int = 300):
 
