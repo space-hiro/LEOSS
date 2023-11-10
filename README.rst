@@ -29,6 +29,40 @@ location relative to a specific point on the Earth or a ground site in particula
 Example-01: Basic GroundTrack
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+..  tabs::
+
+    ..  group-tab:: code
+
+        ..  code-block:: python
+
+            system = LEOSS()
+            system.epoch(2023,1,1,12,0,0)
+
+            system.addSpacecraft("DIWATA")
+
+            spacecraft = system.getSpacecrafts()
+            recorder   = system.getRecorders()
+
+            spacecraft["DIWATA"].setmass(4.00)
+            spacecraft["DIWATA"].setsize(Vector(0.1,0.1,0.3405))
+            spacecraft["DIWATA"].setposition(Vector(-3398.36655479e3, 2536.91064491e3,  5312.67851581e3))
+            spacecraft["DIWATA"].setvelocity(Vector(-5.05043202e3, -5.73213209e3, -0.49795572e3))
+
+            time = 60*60*4
+
+            simulateProgress(system, time, 8, orbitPropOnly=True)
+
+            groundTrack(recorder['DIWATA'])
+
+    ..  group-tab:: output
+
+        ..  code-block:: sh
+
+            Run Simulation (from 0.0 to 14400, step=4)
+            Simulating: 100%|█████████████████████████| 14400.0/14400.0 [00:00<00:00, 22944.82it/s]
+
+            Elapsed Time:   0.6345400810241699 sec.
+
 Python Code:
 
 .. code:: python
