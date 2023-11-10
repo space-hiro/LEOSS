@@ -117,6 +117,9 @@ Terminal Output:
 
 |Groundtrack GIF|
 
+The figure above shows the output GIF from the line  ``animatedGroundTrack(recorder['DIWATA']), ...``. 
+This is the animated version of the previous example, sampled at every ``4`` frames.
+
 ****
 
 Animated Attitude Tracking
