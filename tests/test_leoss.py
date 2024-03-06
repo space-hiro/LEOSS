@@ -3,7 +3,7 @@ from leoss import *
 
 
 def test_version():
-    assert __version__ == "0.2.14"
+    assert __version__ == "0.2.15"
 
 def test_01():
     '''
@@ -561,7 +561,15 @@ def test_16():
     assert (Vector(0,1,0) - Q_z.rotate(Vx)).magnitude() <= 1e-8
 
 def test_17():
-    
+    '''
+    Testing the sensor class functions.
+    Using custom functions to define gyroscope and gps sensors.
+    nameofsensor = Sensor('NAMEOFSENSOR') - create an empty sensor class
+    nameofsensor.setMethod(customfunction) - sets the custom function to the sensor class
+    spacecraft["NAMEOFCRAFT"].addSensor(nameofsensor) - adds the sensor class to a spacecraft 
+    sensorlist = spacecraft["NAMEOFCRAFT"].getSensors() - gets the list of all sensors (pointers to the sensors class)
+    sensorlist["NAMEOFSENSOR"] - gets the specific sensor from the list
+    '''
     system = LEOSS()
     system.epoch(2023,9,26,3,11,18,0)
 
