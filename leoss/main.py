@@ -636,7 +636,10 @@ class Spacecraft():
 
         deltaState.position = state.velocity
 
-        self.netforce = self.netforce + systemGravity(self.system, state.mass, state.position)
+        self.netforce = self.netforce \
+                      + systemGravity(self.system, state.mass, state.position) \
+                      + systemAtmosphere(self.system, state, self.size)
+        
         deltaState.velocity = self.netforce/state.mass
 
         self.inertia = rectbodyInertia(self.size, state.mass)
@@ -939,6 +942,65 @@ class LEOSS():
 def systemGravity(system: LEOSS, mass, position):
     rho = position.magnitude()
     return -(system.mu*mass/(rho**3))*position
+
+def systemAtmosphere(system: LEOSS, state, dimension):
+
+    pos = state.position
+    rho = pos.magnitude() - system.radi
+    z   = rho/1000
+
+    h = [  0,  25,  30,  40,  50,  60,  70, 
+          80,  90, 100, 110, 120, 130, 140,
+         150, 180, 200, 250, 300, 350, 400,
+         450, 500, 600, 700, 800, 900, 1000 ]
+    
+    p0 = [     1.225,  3.899e-2,  1.774e-2,  3.972e-3,  1.057e-3,  3.206e-4,  8.770e-5,
+            1.905e-5,  3.396e-6,  5.297e-7,  9.661e-8,  2.438e-8,  8.484e-9, 3.8345e-9,
+            2.070e-9, 5.464e-10, 2.789e-10, 7.248e-11, 2.418e-11, 9.518e-12, 3.725e-12,
+           1.585e-12, 6.967e-13, 1.454e-13, 3.614e-14, 1.170e-14, 5.245e-15, 3.019e-15 ]
+    
+    H = [  7.249,  6.349,  6.682,   7.554,   8.382,   7.714,  6.549, 
+           5.799,  5.382,  5.877,   7.263,   9.473,  12.636, 16.149,
+          22.523, 29.740, 37.105,  45.546,  53.628,  53.298, 58.515,
+          60.828, 63.822, 71.835,  88.667, 124.640, 181.050, 268.00 ]
+    
+    if z > 1000:
+        z = 1000
+    elif z < 0:
+        z = 0
+    
+    i = 0
+    ### interpolation interval
+    jlist = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+              11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+              21, 22, 23, 24, 25, 26, 27 ]
+    for j in jlist:
+        if z >= h[j] and z < h[j+1]:
+            i = j
+            break
+        
+    if z == 1000:
+        i = 27
+        
+    ### exponential interpolation
+    p = p0[i]*math.exp(-(z-h[i])/H[i])
+    
+    D = 2.2
+    dim = dimension
+    A = ( dim.x*dim.y + dim.x*dim.z + dim.y*dim.z ) / 3
+    # w_earth = 360.98564724*D2R/(24*60*60) * np.array([0.0, 0.0, 1.0])
+    w = Vector(0.0, 0.0, 7.29211585e-05)
+
+    v_sc  = state.velocity
+    v_atm = w.cross(pos)
+    v_rel = v_sc - v_atm
+    
+    vr    = math.sqrt(v_rel.x**2+v_rel.y**2+v_rel.z**2)
+    unit_vr = v_rel/vr
+    
+    drag = (-0.5*p*D*A*vr*vr)*unit_vr
+
+    return drag
 
 def systemSun(system: LEOSS):
     # AU = 149597870.691
