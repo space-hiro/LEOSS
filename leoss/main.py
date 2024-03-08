@@ -572,6 +572,15 @@ class Spacecraft():
         self.gravityTYPE    = "SPHERICAL2BODY"
         self.atmosphereTYPE = "NONE"
 
+    def setAtmosphereModel(self, other):
+        if isinstance(other, str):
+            if (other == "NONE" or other == "US76" or other == "CIRA12"):
+                self.atmosphereTYPE = other
+            else:
+                raise ValueError("Input str is not a valid AtmosphereModel")
+        else:
+            raise TypeError("Operang should be str")
+
     def getmass(self):
         return self.state.mass
 
@@ -956,7 +965,111 @@ def systemAtmosphere(system: LEOSS, state, dimension, atmosphereTYPE):
     if atmosphereTYPE == "NONE":
         return Vector(0.0, 0.0, 0.0)
     
+    if atmosphereTYPE == "CIRA12":
+        '''
+        -------------------------------------------------------------------------------------------------
+        Computes the atmospheric drag force on the spacecraft in moderate solar and geomagnetic activity.
+        This follows the (latest) CIRA-2012 Earth's Atmosphere Model
+            This is based from JB2008 model (Jacchia-Bowman) based on Jacchia model heritage
+            (Note that CIRA-2012 has four semi-empirical models, JB2008 is the one recommended 
+            for use in determining drag in LEO above 120 km)
+        Applicable only from 180 to 900 km
+        -------------------------------------------------------------------------------------------------
+        The atmospheric model is polyfitted (order=4) based from [2] using [1]
+        Algorithm for drag force is based from [4]
+        The drag coefficeint is assumed to be the standard 2.2 as in [3]
+        The reference area of the spacecraft A is the mean surface area as in [3]
+        -------------------------------------------------------------------------------------------------
+        References: 
+            [1] COSPAR Internation Reference Atmosphere Model (CIRA-2012) pp.20-25
+            [2] Bare Electrodynamic Tether Mission Analysis (BETsMA) ResearchGate (2014) pp.14
+            [3] https://digitalcommons.usu.edu/cgi/viewcontent.cgi?article=1144&context=smallsat
+            [4] Orbital Mechanics for Engineering Students by Howard Curtis (2014) pp.658
+        -------------------------------------------------------------------------------------------------
+        '''
+        # moderate solar and geomagnetic activities - JB2008
+        # F10.7 avg = 140 solar proxy 
+        # S10.7 avg = 125 solar index
+        # M10.7 avg = 125 solar proxy 
+        # Y10.7 avg = 125 solar index
+        # Ap        = 15  daily planetary geomagnetic index
+        # Dst       = -15 hourly disturbance storm time ring geomagnetic index
+        # x = np.arange(100,920,20)
+        # y = [ 5.47e-07, 2.40e-08, 3.98e-09, 1.36e-09, 6.15e-10, 3.17e-10, 1.77e-10, 1.05e-10, 6.47e-11, 4.12e-11,
+        #        2.69e-11, 1.80e-11, 1.23e-11, 8.48e-12, 5.95e-12, 4.22e-12, 3.02e-12, 2.18e-12, 1.59e-12, 1.17e-12,
+        #        8.60e-13, 6.39e-13, 4.77e-13, 3.58e-13, 2.71e-13, 2.06e-13, 1.57e-13, 1.20e-13, 9.28e-14, 7.19e-14,
+        #        5.60e-14, 4.40e-14, 3.48e-14, 2.79e-14, 2.26e-14, 1.85e-14, 1.53e-14, 1.28e-14, 1.08e-14, 9.27e-15,
+        #        8.01e-15 ]
+        
+        # z = np.polyfit(x[4:],np.log10(y[4:]),15)
+        # p = np.poly1d(z)
+        # xp = np.arange(180,900,1)
+        # plt.plot(x[4:],y[4:],'r-')
+        # plt.plot(xp,10**p(xp),'g.-')
+        # plt.plot(x[4:],np.log10(y[4:]),'r-')
+        # plt.plot(xp,p(xp),'g.-')
+        # plt.plot(x[4:],10**p(x[4:])-y[4:],'r-')
+        # plt.show()
+        
+        # JB2008 (moderate)
+        pn = [ 1.99771025e-11, -4.73018227e-08, 4.41628966e-05, -2.50878092e-02, -5.89884573e+00]
+        
+        def f(input):
+            return  pn[0]*input**(4) \
+                    +  pn[1]*input**(3) \
+                    +  pn[2]*input**(2) \
+                    +  pn[3]*input**(1) \
+                    +  pn[4]  
+        
+        pos = state.position
+        rho = pos.magnitude() - system.radi
+        z   = rho/1000
+        
+        if z >= 900:
+            z = 900
+        elif z <= 180:
+            z = 180
+        
+        p = 10**f(z)
+        
+        D = 2.2
+        dim = dimension
+        A = ( dim.x*dim.y + dim.x*dim.z + dim.y*dim.z ) / 3
+        # w_earth = 360.98564724*D2R/(24*60*60) * np.array([0.0, 0.0, 1.0])
+        w = Vector(0.0, 0.0, 7.29211585e-05)
+
+        v_sc  = state.velocity
+        v_atm = w.cross(pos)
+        v_rel = v_sc - v_atm
+        
+        vr    = math.sqrt(v_rel.x**2+v_rel.y**2+v_rel.z**2)
+        unit_vr = v_rel/vr
+        
+        drag = (-0.5*p*D*A*vr*vr)*unit_vr
+
+        return drag
+
     if atmosphereTYPE == "US76":
+        '''
+        -----------------------------------------------------------------------------------------
+        Computes the atmospheric drag force on the spacecraft.
+        This follows the Exponential Atmospheric Model which uses the..
+            U.S. Standard Atmosphere 1976 (USSA76) for 0 km
+            COSPAR International Reference Atmosphere 1972 (CIRA72) for 25-500 km
+            CIRA72 with exospheric temperature T = 1000K for 500-1000 km
+        Applicable only from altitude of 0 to 1000 km. 
+        -----------------------------------------------------------------------------------------
+        Algorithm for atmosphere density is based from [1]
+        Algorithm for drag force is based from [3]
+        The drag coefficeint is assumed to be the standard 2.2 as in [2]
+        The reference area of the spacecraft A is the mean surface area as in [2]
+        -----------------------------------------------------------------------------------------
+        References: 
+            [1] Fundamentals of Astrodynamics and Applications by David Vallado (2013) pp.567
+            [2] https://digitalcommons.usu.edu/cgi/viewcontent.cgi?article=1144&context=smallsat
+            [3] Orbital Mechanics for Engineering Students by Howard Curtis (2014) pp.658
+        -----------------------------------------------------------------------------------------
+        '''
         pos = state.position
         rho = pos.magnitude() - system.radi
         z   = rho/1000
