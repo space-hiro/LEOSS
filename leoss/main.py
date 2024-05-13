@@ -569,8 +569,11 @@ class Spacecraft():
         
         self.torques = {}
 
+        self.dipole = Vector(0.0, 0.0, 0.0)
+
         self.gravityTYPE    = "SPHERICAL2BODY"
         self.atmosphereTYPE = "NONE"
+        self.magnetfieldTYPE = "NONE"
 
     def setAtmosphereModel(self, other):
         if isinstance(other, str):
@@ -659,7 +662,9 @@ class Spacecraft():
             deltaState.quaternion = quaternionDerivative(state.bodyrate, state.quaternion)
 
             self.netmomentum = self.netmomentum + self.inertia*state.bodyrate
-            self.nettorque = self.nettorque + self.getTorques()
+            self.nettorque = self.nettorque \
+                           + self.calculateTorques() \
+                           + systemMagneticField(self.system, state, time, self.dipole, self.magnetfieldTYPE)
 
             deltaState.bodyrate = self.inertia.inverse()*(self.nettorque-state.bodyrate.cross(self.netmomentum))
 
@@ -704,6 +709,7 @@ class Spacecraft():
             other.attachedTo = self
             other.system = self.system
             self.recorder.addItem(other)
+            self.addTorque(other)
 
     def getActuators(self):
         return self.actuators
@@ -714,15 +720,15 @@ class Spacecraft():
 
     def addTorque(self, other):
         self.torques[other.name] = other
-        other.attachedTo = self
-        other.system = self.system
-        self.recorder.addItem(other)
 
-    def getTorques(self):
+    def calculateTorques(self):
         total_torque = Vector(0,0,0)
         for torque in self.torques.values():
             total_torque = total_torque + torque.data
         return total_torque
+    
+    def getTorques(self):
+        return self.torques
 
     def __getitem__(self, item):
         if isinstance(item, str):
@@ -772,7 +778,7 @@ class GroundStation():
             self.min_elevation = other
 
 class Pass():
-    def __init__(self, aos: datetime.datetime, tca: datetime.datetime, elev: int or float, los: datetime.datetime):
+    def __init__(self, aos: datetime.datetime, tca: datetime.datetime, elev, los: datetime.datetime):
         self.AOS = aos
         self.TCA = tca
         self.LOS = los
@@ -959,6 +965,67 @@ def systemGravity(system: LEOSS, mass, position, gravityTYPE):
     if gravityTYPE == "SPHERICAL2BODY":
         rho = position.magnitude()
         return -(system.mu*mass/(rho**3))*position
+
+def systemMagneticField(system: LEOSS, state, time, dipole, fieldTYPE):
+    
+    if fieldTYPE == "NONE" or "":
+        return Vector(0.0, 0.0, 0.0)
+    
+    if fieldTYPE == "EARTH":
+        position = state.position
+        mag = position.magnitude()
+
+        theta = math.acos(position.z/mag)
+        psi   = math.atan2(position.y,position.x)
+
+        latitude  = 90 - (theta*R2D)
+        longitude = psi*R2D
+        altitude  = (mag-system.radi)/1000
+
+        xy = math.sqrt(position.x**2+position.y**2)
+
+        gd_theta = latitude*D2R
+        C = 0
+        gd = 0
+        e2 = 0.006694385000
+
+        while True:
+            C = system.radi/math.sqrt(1-e2*math.sin(gd_theta)*math.sin(gd_theta))
+            gd = math.atan2(position.z+C*e2*math.sin(gd_theta),xy)
+            if abs(gd-gd_theta) < 1e-6:
+                gd_theta = gd
+                break
+            gd_theta = gd
+        
+        h_ellp = ( xy/math.cos(gd_theta) ) - C  
+        
+        altitude = h_ellp/1e3
+        latitude = gd_theta*R2D
+
+        gmst_ = system.gmst + time*(360.98564724)/(24*3600) 
+        longitude = longitude - gmst_
+        if longitude < 0:
+            longitude = (((longitude/360) - int(longitude/360)) * 360) + 360    
+        if longitude > 180:
+            longitude = -360 + longitude
+            
+        location = Vector(latitude, longitude, altitude)
+        magfield = IGRF.igrf_value(location[0], location[1], location[2], system.datenow().year)[3:6]
+        magfield_NED_vector = Vector(magfield[0], magfield[1], magfield[2]) * 1e-9
+
+        R = position.magnitude()
+        theta = math.acos(position.z/R)
+        psi   = math.atan2(position.y, position.x)
+        RPY = Vector(0, (theta+math.pi)*R2D, psi*R2D)
+
+        magfield_inertial_vector = RPY.RPY_toYPR_quaternion().toMatrix().transpose()*magfield_NED_vector
+
+        quaternion = state.quaternion
+        magfield_body_vector = quaternion.toMatrix()*magfield_inertial_vector
+
+        disturbance_torque = dipole.cross(magfield_body_vector)
+
+        return disturbance_torque
 
 def systemAtmosphere(system: LEOSS, state, dimension, atmosphereTYPE):
 
@@ -1208,7 +1275,7 @@ def simulateProgress(system: LEOSS, timeEnd, timeStep=1/32, orbitPropOnly = Fals
     t1 = clock.time()
     print("\nElapsed Time:\t"+str(t1-t0)+" sec.")
 
-def PRVtoQuaternion(PRV: Vector, Angle: int or float, unit='deg'):
+def PRVtoQuaternion(PRV: Vector, Angle, unit='deg'):
     if unit == 'deg':
         Angle = Angle*D2R
         unit = 'rad'
@@ -1225,7 +1292,7 @@ def quaternionDerivative(omega: Vector, quat: Quaternion):
     qdotZ = omega.z*quat.w + omega.y*quat.x - omega.x*quat.y +       0*quat.z
     return Quaternion( qdotW/2, qdotX/2, qdotY/2, qdotZ/2 )
 
-def rectbodyInertia(size: Vector, mass: int or float):
+def rectbodyInertia(size: Vector, mass):
     Lx = size.x
     Ly = size.y
     Lz = size.z
