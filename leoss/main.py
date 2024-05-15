@@ -503,13 +503,17 @@ class Sensor():
         self.name = name
         self.data = Vector(0,0,0)
         self.function = None
+        self.power = False
     
     def setMethod(self, function, args=[]):
         self.function = function
         self.args = args
 
     def update(self):
-        self.data = self.function(self.attachedTo, self.args)
+        if self.power == True:
+            self.data = self.function(self.attachedTo, self.args)
+        else:
+            self.data = self.data * 0
 
     def __repr__(self):
         return str(self.data)
@@ -520,13 +524,17 @@ class Controller():
         self.name = name
         self.data = Vector(0,0,0)
         self.function = None
+        self.power = False
     
     def setMethod(self, function, args=[]):
         self.function = function
         self.args = args
 
     def update(self):
-        self.data = self.function(self.attachedTo, self.args)
+        if self.power == True:
+            self.data = self.function(self.attachedTo, self.args)
+        else:
+            self.data = self.data * 0
 
     def __repr__(self):
         return str(self.data)
@@ -537,17 +545,48 @@ class Actuator():
         self.name = name
         self.data = Vector(0,0,0)
         self.function = None
+        self.power = False
     
     def setMethod(self, function, args=[]):
         self.function = function
         self.args = args
 
     def update(self):
-        self.data = self.function(self.attachedTo, self.args)
+        if self.power == True:
+            self.data = self.function(self.attachedTo, self.args)
+        else:
+            self.data = self.data * 0
 
     def __repr__(self):
         return str(self.data)
+    
+class Sked():
 
+    def __init__(self, name: str, file=None):
+        self.name    = name
+        self.binary  = []
+        self.text    = []
+        self.read(file)
+        
+    def read(self, file=None):
+        if file != None:
+            self.binary = open(file, 'rb').readlines()
+            self.text = open(file, 'r').readlines()
+        else:
+            raise TypeError("Input argument must a valid sked text file")
+        
+    def size(self):
+        return len(self.text)
+
+    def __repr__(self):
+        return str(self.text)
+    
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            return self.text[item]
+        else:
+            raise TypeError("Index value should be an integer")
+        
 class Spacecraft():
 
     def __init__(self, name):
@@ -571,9 +610,61 @@ class Spacecraft():
 
         self.dipole = Vector(0.0, 0.0, 0.0)
 
-        self.gravityTYPE    = "SPHERICAL2BODY"
-        self.atmosphereTYPE = "NONE"
+        self.gravityTYPE     = "SPHERICAL2BODY"
+        self.atmosphereTYPE  = "NONE"
         self.magnetfieldTYPE = "NONE"
+
+        self.sked        = None
+        self.nextCMD     = None
+        self.nextCMDline = None
+        self.idxCMD      = None
+        self.unixTime    = 0
+
+    def loadSked(self, other: Sked):
+        if isinstance(other, Sked):
+            self.sked = other
+            self.idxCMD = 0
+            self.nextCMD = self.sked[self.idxCMD]
+            self.nextCMDline = self.nextCMD.replace('\n','').replace(' ','').split(',')
+            self.unixTime = int(self.system.datenow().timestamp())
+        else:
+            raise TypeError("Input argument is not a valid class of type Sked")
+
+    def updateUnixTime(self, cycle=1):
+        if int(self.system.datenow().timestamp()) >= self.unixTime + cycle:
+            self.unixTime = int(self.system.datenow().timestamp())
+            self.processSked()
+            self.updateComponents()
+        
+    def processSked(self):
+        if int(self.nextCMDline[0]) == self.unixTime:
+            self.COMMANDEXEC(self.nextCMDline[1], self.nextCMDline[2])
+            if self.idxCMD < self.sked.size()-1:
+                self.idxCMD         = self.idxCMD + 1
+                self.nextCMD        = self.sked[self.idxCMD]
+                self.nextCMDline    = self.nextCMD.replace('\n','').replace(' ','').split(',')
+
+    def COMMANDEXEC(self, command: str, arg=[]):
+        if command == 'Components' and arg == 'ON':
+            for sensor in self.sensors.values():
+                sensor.power = True
+            for controller in self.controllers.values():
+                controller.power = True
+            for actor in self.actuators.values():
+                actor.power = True
+
+        if command == 'Components' and arg == 'OFF':
+            for sensor in self.sensors.values():
+                sensor.power = False
+            for controller in self.controllers.values():
+                controller.power = False
+            for actor in self.actuators.values():
+                actor.power = False
+
+    def updateComponents(self):
+        self.updateSensors()
+        self.updateControllers()
+        self.updateActuators()        
 
     def setAtmosphereModel(self, other):
         if isinstance(other, str):
@@ -888,9 +979,10 @@ class LEOSS():
         for spacecraft in self.spacecraftObjects:
 
             spacecraft.location = self.locate(spacecraft, self.time)
-            spacecraft.updateSensors()
-            spacecraft.updateControllers()
-            spacecraft.updateActuators()
+            spacecraft.updateUnixTime()
+            # spacecraft.updateSensors()
+            # spacecraft.updateControllers()
+            # spacecraft.updateActuators()
             newstate = runggeKutta4(spacecraft.derivative, spacecraft.state, self.time, deltaTime)
             newstate.quaternion = newstate.quaternion.normalize()
 

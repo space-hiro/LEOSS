@@ -611,7 +611,7 @@ def test_17():
 
     time = 60
 
-    simulateProgress(system, time)
+    simulate(system, time)
 
     assert recorder["DIWATA"]['State'][-1].bodyrate == sensors['gyro'].data
     assert recorder["DIWATA"]['Location'][-1] == sensors['gps'].data
