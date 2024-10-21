@@ -1,6 +1,8 @@
 LEOSS
 =====
 
+THIS VERSION OF ``LEOSS`` IS DISCONTINUED --> PROCEED TO my LEOSS2 REPOSITORY
+
 ``LEOSS`` is shorthand for Low Earth Orbit Spacecraft Simulator. 
 
 This project README is still in construction...
